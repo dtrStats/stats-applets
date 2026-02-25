@@ -4,7 +4,7 @@ This repository contains applets to help understand concepts that we cover in cl
 
 Open the applets here:
 
-- [Sampling distribution of the mean](./applet01/index.html)
+- [Sampling distribution of the mean](https://dtrstats.github.io/stats-applets/applet01/)
 - [Interpreting Confidence Intervals](./applet02/index.html)
 
 Or use the landing page:
