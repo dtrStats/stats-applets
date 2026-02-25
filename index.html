@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Statistics Applets</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #dbe3ee;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 48px 20px;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: 2.2rem;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 1.25rem;
+    }
+
+    .card p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .btn {
+      display: inline-block;
+      text-decoration: none;
+      background: var(--accent);
+      color: #ffffff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-weight: 700;
+      transition: background 0.2s ease;
+    }
+
+    .btn:hover,
+    .btn:focus {
+      background: var(--accent-dark);
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="hero">
+      <h1>Statistics Applets</h1>
+      <p>Select an applet below to open it.</p>
+    </section>
+
+    <section class="grid" aria-label="Applet links">
+      <article class="card">
+        <h2>Applet 01</h2>
+        <p>Open the first statistics applet hosted in the repository.</p>
+        <a class="btn" href="applet01/index.html">Open Applet 01</a>
+      </article>
+
+      <article class="card">
+        <h2>Applet 02</h2>
+        <p>Open the second statistics applet hosted in the repository.</p>
+        <a class="btn" href="applet02/index.html">Open Applet 02</a>
+      </article>
+    </section>
+
+    <div class="footer">
+      This page uses only relative links and works as a simple GitHub Pages landing page.
+    </div>
+  </main>
+</body>
+</html>
