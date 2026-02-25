@@ -1,4 +1,11 @@
-<!-- INSTRUCTOR EDITS: Change DEFAULT_N, DEFAULT_SIMS, and DEFAULT_SHAPE in the script below to set startup defaults. To change slider limits, edit the min/max/step attributes on the two range inputs in the controls section. -->
+<!--
+HOW TO EDIT:
+1) Change DEFAULTS.n, DEFAULTS.sims, and DEFAULTS.shape in the script to set the startup defaults.
+2) Change HIST_BINS if you want a different number of histogram bins for the population histogram.
+3) The sample-mean histogram will always use at least SAMPLE_MEAN_MIN_BINS bins.
+4) Change POP_PSEUDO_COUNT if you want the top "true population" histogram to look smoother or rougher.
+5) Both plots share the same x-axis range (set by the selected population) so spread is directly comparable as n changes.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,695 +13,787 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sampling Distribution of the Mean</title>
   <style>
-    :root {
-      --bg: #f6f8fb;
-      --panel: #ffffff;
-      --ink: #1f2937;
-      --muted: #6b7280;
-      --accent: steelblue;
-      --border: #d7deea;
+    :root{
+      --bg:#f6f8fb;
+      --panel:#ffffff;
+      --border:#d8dee9;
+      --text:#1f2937;
+      --muted:#4b5563;
+      --accent:#4682b4;
+      --accent-dark:#35658a;
+      --line:#b91c1c;
+      --shadow:0 2px 10px rgba(0,0,0,0.06);
     }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background: var(--bg);
-      color: var(--ink);
-      line-height: 1.4;
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      padding:20px;
+      font-family:Arial, Helvetica, sans-serif;
+      background:var(--bg);
+      color:var(--text);
     }
-
-    .wrap {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 18px;
+    .app{
+      max-width:1100px;
+      margin:0 auto;
     }
-
-    h1 {
-      margin: 0 0 14px;
-      font-size: 1.9rem;
-      text-align: center;
+    h1{
+      margin:0 0 14px 0;
+      font-size:30px;
+      line-height:1.15;
     }
-
-    .sub {
-      text-align: center;
-      color: var(--muted);
-      margin: 0 0 18px;
-      font-size: 0.98rem;
+    .subtitle{
+      margin:0 0 16px 0;
+      color:var(--muted);
+      font-size:15px;
     }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 320px 1fr;
-      gap: 16px;
+    .controls, .panel{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:12px;
+      box-shadow:var(--shadow);
     }
-
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    .controls{
+      display:grid;
+      grid-template-columns: 1.2fr 1.2fr 1fr auto auto;
+      gap:14px;
+      padding:14px;
+      align-items:end;
+      margin-bottom:16px;
     }
-
-    .controls .control {
-      margin-bottom: 16px;
+    .control{
+      min-width:0;
     }
-
-    .controls label {
-      display: block;
-      font-weight: 700;
-      margin-bottom: 6px;
+    .control label{
+      display:block;
+      font-weight:700;
+      margin-bottom:6px;
+      font-size:14px;
     }
-
-    .value-badge {
-      color: var(--accent);
-      font-weight: 700;
+    .value{
+      color:var(--accent-dark);
+      font-weight:700;
+      margin-left:6px;
     }
-
-    input[type="range"] {
-      width: 100%;
-      cursor: pointer;
+    input[type="range"]{
+      width:100%;
+      cursor:pointer;
     }
-
-    select {
-      width: 100%;
-      padding: 8px 10px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: #fff;
-      font-size: 0.98rem;
+    select{
+      width:100%;
+      padding:8px 10px;
+      border:1px solid #cbd5e1;
+      border-radius:8px;
+      font-size:14px;
+      background:#fff;
     }
-
-    .btn-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 10px;
+    button{
+      padding:10px 14px;
+      border:none;
+      border-radius:10px;
+      font-size:14px;
+      font-weight:700;
+      cursor:pointer;
+      min-height:40px;
     }
-
-    button {
-      border: 0;
-      padding: 10px 14px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: 700;
-      font-size: 0.95rem;
+    #runBtn{
+      background:var(--accent);
+      color:#fff;
     }
-
-    .run-btn {
-      background: var(--accent);
-      color: #fff;
+    #runBtn:hover{background:var(--accent-dark)}
+    #resetBtn{
+      background:#e5e7eb;
+      color:#111827;
     }
-
-    .reset-btn {
-      background: #e5e7eb;
-      color: #111827;
+    #resetBtn:hover{background:#d1d5db}
+    .canvas-wrap{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:12px;
+      box-shadow:var(--shadow);
+      padding:10px;
+      margin-bottom:16px;
     }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 8px;
+    canvas{
+      display:block;
+      width:100%;
+      height:auto;
+      background:#fff;
+      border-radius:8px;
     }
-
-    .stat-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 6px 0;
-      border-bottom: 1px solid #edf1f7;
+    .panels{
+      display:grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap:16px;
     }
-
-    .stat-row:last-child {
-      border-bottom: 0;
+    .panel{
+      padding:16px;
     }
-
-    .stat-label {
-      color: var(--muted);
+    .panel h2{
+      margin:0 0 10px 0;
+      font-size:18px;
     }
-
-    .stat-value {
-      font-weight: 700;
+    .stats-grid{
+      display:grid;
+      grid-template-columns: auto auto;
+      gap:8px 16px;
+      align-items:center;
+      font-size:15px;
+    }
+    .stats-grid .label{
+      color:var(--muted);
+    }
+    .stats-grid .num{
+      text-align:right;
       font-variant-numeric: tabular-nums;
+      font-weight:700;
     }
-
-    .plot-title {
-      text-align: center;
-      font-weight: 700;
-      margin-bottom: 8px;
-      font-size: 1.05rem;
+    #interpretationText{
+      margin:0;
+      line-height:1.55;
+      font-size:15px;
     }
-
-    canvas {
-      display: block;
-      width: 100%;
-      max-width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: #fff;
+    @media (max-width: 950px){
+      .controls{
+        grid-template-columns:1fr 1fr;
+      }
+      .panels{
+        grid-template-columns:1fr;
+      }
     }
-
-    .interp {
-      min-height: 78px;
-      color: #111827;
-    }
-
-    .note {
-      color: var(--muted);
-      font-size: 0.9rem;
-      margin-top: 6px;
-    }
-
-    @media (max-width: 900px) {
-      .grid {
-        grid-template-columns: 1fr;
+    @media (max-width: 620px){
+      .controls{
+        grid-template-columns:1fr;
       }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <div class="app">
     <h1>Sampling Distribution of the Mean</h1>
-    <p class="sub">Explore how the distribution of sample means becomes tighter and more nearly normal as sample size increases.</p>
+    <p class="subtitle">Explore how the distribution of sample means gets tighter and more bell-shaped as sample size increases.</p>
 
-    <div class="grid">
-      <div>
-        <div class="panel controls">
-          <div class="control">
-            <label for="nSlider">Sample size n: <span class="value-badge" id="nValue">30</span></label>
-            <input id="nSlider" type="range" min="5" max="200" step="1" value="30" />
-          </div>
+    <div class="controls">
+      <div class="control">
+        <label for="nSlider">Sample size n <span class="value" id="nValue">30</span></label>
+        <input id="nSlider" type="range" min="5" max="200" step="1" value="30" />
+      </div>
 
-          <div class="control">
-            <label for="simSlider">Number of simulations: <span class="value-badge" id="simValue">1000</span></label>
-            <input id="simSlider" type="range" min="100" max="5000" step="100" value="1000" />
-          </div>
+      <div class="control">
+        <label for="simSlider">Number of simulations <span class="value" id="simValue">1000</span></label>
+        <input id="simSlider" type="range" min="100" max="5000" step="100" value="1000" />
+      </div>
 
-          <div class="control">
-            <label for="shapeSelect">Population shape</label>
-            <select id="shapeSelect">
-              <option value="normal">Normal</option>
-              <option value="skewed">Right-skewed</option>
-              <option value="bimodal">Bimodal</option>
-            </select>
-          </div>
+      <div class="control">
+        <label for="shapeSelect">Population shape</label>
+        <select id="shapeSelect">
+          <option value="normal">Normal</option>
+          <option value="skewed">Right-skewed</option>
+          <option value="bimodal">Bimodal</option>
+        </select>
+      </div>
 
-          <div class="btn-row">
-            <button class="run-btn" id="runBtn">Run Simulation</button>
-            <button class="reset-btn" id="resetBtn">Reset</button>
-          </div>
+      <button id="runBtn" type="button">Run Simulation</button>
+      <button id="resetBtn" type="button">Reset</button>
+    </div>
 
-          <div class="note">
-            Population generators: Normal uses Box-Muller with &mu; = 50, &sigma; = 10; Right-skewed uses Exp(&lambda; = 0.1); Bimodal mixes 50% from N(30, 5) and 50% from N(70, 5).
-          </div>
-        </div>
+    <div class="canvas-wrap">
+      <canvas id="plotCanvas" width="1000" height="760"></canvas>
+    </div>
 
-        <div class="panel" style="margin-top:16px;" aria-live="polite">
-          <h3 style="margin:0 0 10px;">Numbers Panel</h3>
-          <div class="stats-grid">
-            <div class="stat-row">
-              <span class="stat-label">Mean of sample means</span>
-              <span class="stat-value" id="meanMeans">—</span>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">SD of sample means</span>
-              <span class="stat-value" id="sdMeans">—</span>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">Theoretical SE</span>
-              <span class="stat-value" id="theoreticalSE">—</span>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">Number of simulations completed</span>
-              <span class="stat-value" id="simCount">—</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel" style="margin-top:16px;" aria-live="polite">
-          <h3 style="margin:0 0 10px;">Interpretation Panel</h3>
-          <div class="interp" id="interpretation">
-            Run a simulation to see how the sampling distribution of <em>x-bar</em> changes.
-          </div>
+    <div class="panels">
+      <div class="panel">
+        <h2>Numbers</h2>
+        <div class="stats-grid">
+          <div class="label">True population mean</div><div class="num" id="populationMean">—</div>
+          <div class="label">True population SD</div><div class="num" id="populationSD">—</div>
+          <div class="label">Mean of sample means</div><div class="num" id="meanMeans">—</div>
+          <div class="label">SD of sample means</div><div class="num" id="sdMeans">—</div>
+          <div class="label">Simulations completed</div><div class="num" id="completedSims">0</div>
         </div>
       </div>
 
       <div class="panel">
-        <div class="plot-title" id="plotTitle">Sampling Distribution of x-bar (n = 30)</div>
-        <canvas id="histCanvas" width="760" height="500">
-          Your browser does not support the canvas element.
-        </canvas>
+        <h2>Interpretation</h2>
+        <p id="interpretationText">Choose settings and click <strong>Run Simulation</strong> to compare the true population with the sampling distribution of <em>x-bar</em>.</p>
       </div>
     </div>
   </div>
 
   <script>
-    "use strict";
+    const DEFAULTS = {
+      n: 30,
+      sims: 1000,
+      shape: "normal"
+    };
 
-    const DEFAULT_N = 30;
-    const DEFAULT_SIMS = 1000;
-    const DEFAULT_SHAPE = "normal";
     const HIST_BINS = 30;
+    const SAMPLE_MEAN_MIN_BINS = 15;
+    const POP_PSEUDO_COUNT = 4000;
 
-    const controls = {
-      nSlider: document.getElementById("nSlider"),
-      simSlider: document.getElementById("simSlider"),
-      shapeSelect: document.getElementById("shapeSelect"),
-      nValue: document.getElementById("nValue"),
-      simValue: document.getElementById("simValue"),
-      runBtn: document.getElementById("runBtn"),
-      resetBtn: document.getElementById("resetBtn")
-    };
+    const nSlider = document.getElementById("nSlider");
+    const simSlider = document.getElementById("simSlider");
+    const shapeSelect = document.getElementById("shapeSelect");
+    const nValue = document.getElementById("nValue");
+    const simValue = document.getElementById("simValue");
 
-    const output = {
-      meanMeans: document.getElementById("meanMeans"),
-      sdMeans: document.getElementById("sdMeans"),
-      theoreticalSE: document.getElementById("theoreticalSE"),
-      simCount: document.getElementById("simCount"),
-      interpretation: document.getElementById("interpretation"),
-      plotTitle: document.getElementById("plotTitle")
-    };
+    const populationMeanEl = document.getElementById("populationMean");
+    const populationSdEl = document.getElementById("populationSD");
+    const meanMeansEl = document.getElementById("meanMeans");
+    const sdMeansEl = document.getElementById("sdMeans");
+    const completedSimsEl = document.getElementById("completedSims");
+    const interpretationEl = document.getElementById("interpretationText");
 
-    const canvas = document.getElementById("histCanvas");
+    const canvas = document.getElementById("plotCanvas");
     const ctx = canvas.getContext("2d");
 
-    const bimodalStats = computeBimodalPopulationStatsNumerically();
+    const BIMODAL_NUMERIC = computeBimodalStatsNumerically();
 
-    controls.nSlider.addEventListener("input", updateControlLabels);
-    controls.simSlider.addEventListener("input", updateControlLabels);
-
-    controls.runBtn.addEventListener("click", function () {
-      const n = parseInt(document.getElementById("nSlider").value, 10);
-      const simulations = parseInt(document.getElementById("simSlider").value, 10);
-      const shape = document.getElementById("shapeSelect").value;
-      runSimulation(n, simulations, shape);
-    });
-
-    controls.resetBtn.addEventListener("click", resetApp);
-
-    initialize();
-
-    function initialize() {
-      controls.nSlider.value = String(DEFAULT_N);
-      controls.simSlider.value = String(DEFAULT_SIMS);
-      controls.shapeSelect.value = DEFAULT_SHAPE;
-      updateControlLabels();
-      clearOutputs();
-      drawEmptyPlot(DEFAULT_N);
+    function getSampleMeanBins() {
+      return Math.max(SAMPLE_MEAN_MIN_BINS, HIST_BINS);
     }
 
-    function updateControlLabels() {
-      controls.nValue.textContent = controls.nSlider.value;
-      controls.simValue.textContent = controls.simSlider.value;
-      output.plotTitle.textContent = "Sampling Distribution of x-bar (n = " + controls.nSlider.value + ")";
+    function updateDisplayedControlValues() {
+      nValue.textContent = String(parseInt(nSlider.value, 10));
+      simValue.textContent = String(parseInt(simSlider.value, 10));
+    }
+
+    function applyDefaults() {
+      nSlider.value = String(DEFAULTS.n);
+      simSlider.value = String(DEFAULTS.sims);
+      shapeSelect.value = DEFAULTS.shape;
+      updateDisplayedControlValues();
+    }
+
+    function resetOutputs() {
+      populationMeanEl.textContent = "—";
+      populationSdEl.textContent = "—";
+      meanMeansEl.textContent = "—";
+      sdMeansEl.textContent = "—";
+      completedSimsEl.textContent = "0";
+      interpretationEl.innerHTML = 'Choose settings and click <strong>Run Simulation</strong> to compare the true population with the sampling distribution of <em>x-bar</em>.';
     }
 
     function resetApp() {
-      controls.nSlider.value = String(DEFAULT_N);
-      controls.simSlider.value = String(DEFAULT_SIMS);
-      controls.shapeSelect.value = DEFAULT_SHAPE;
-      updateControlLabels();
-      clearOutputs();
-      drawEmptyPlot(DEFAULT_N);
+      applyDefaults();
+      resetOutputs();
+      drawAll(DEFAULTS.shape, DEFAULTS.n, null);
     }
 
-    function clearOutputs() {
-      output.meanMeans.textContent = "—";
-      output.sdMeans.textContent = "—";
-      output.theoreticalSE.textContent = "—";
-      output.simCount.textContent = "—";
-      output.interpretation.innerHTML = 'Run a simulation to see how the sampling distribution of <em>x-bar</em> changes.';
-    }
-
-    function runSimulation(n, simulations, shape) {
-      const sampleMeans = new Array(simulations);
-
-      for (let i = 0; i < simulations; i++) {
-        let sum = 0;
-        for (let j = 0; j < n; j++) {
-          sum += drawFromPopulation(shape);
-        }
-        sampleMeans[i] = sum / n;
-      }
-
-      const meanMeans = computeMean(sampleMeans);
-      const sdMeans = computeSampleSD(sampleMeans, meanMeans);
-      const theoreticalSE = getPopulationSigma(shape) / Math.sqrt(n);
-      const skewness = computeMomentSkewness(sampleMeans, meanMeans, sdMeans);
-
-      output.meanMeans.textContent = meanMeans.toFixed(2);
-      output.sdMeans.textContent = sdMeans.toFixed(4);
-      output.theoreticalSE.textContent = theoreticalSE.toFixed(4);
-      output.simCount.textContent = String(simulations);
-      output.plotTitle.textContent = "Sampling Distribution of x-bar (n = " + n + ")";
-
-      drawHistogram(sampleMeans);
-      updateInterpretation(n, shape, sdMeans, theoreticalSE, skewness);
-    }
-
-    function drawFromPopulation(shape) {
+    function getPopulationInfo(shape) {
       if (shape === "normal") {
-        return randomNormal(50, 10);
+        return {
+          key: "normal",
+          label: "normal",
+          displayLabel: "Normal",
+          mean: 50,
+          sigma: 10,
+          xMin: 10,
+          xMax: 90
+        };
       }
       if (shape === "skewed") {
-        return randomExponential(0.1);
+        return {
+          key: "skewed",
+          label: "right-skewed",
+          displayLabel: "Right-skewed",
+          mean: 10,
+          sigma: 10,
+          xMin: 0,
+          xMax: 60
+        };
       }
-      // Bimodal: 50% from N(30,5), 50% from N(70,5)
-      return Math.random() < 0.5 ? randomNormal(30, 5) : randomNormal(70, 5);
+      return {
+        key: "bimodal",
+        label: "bimodal",
+        displayLabel: "Bimodal",
+        mean: BIMODAL_NUMERIC.mean,
+        sigma: BIMODAL_NUMERIC.sigma,
+        xMin: 10,
+        xMax: 90
+      };
     }
 
-    function getPopulationSigma(shape) {
-      if (shape === "normal") return 10;
-      if (shape === "skewed") return 10; // For Exp(lambda=0.1), sigma = 1/lambda = 10
-      return bimodalStats.sd;
+    function randUniformOpen() {
+      let u = Math.random();
+      while (u === 0) u = Math.random();
+      return u;
     }
 
-    function randomNormal(mu, sigma) {
-      return mu + sigma * standardNormalBM();
-    }
+    let spareNormal = null;
 
-    function standardNormalBM() {
-      let u1 = 0;
-      let u2 = 0;
-      while (u1 === 0) u1 = Math.random();
-      while (u2 === 0) u2 = Math.random();
+    function randStandardNormalBoxMuller() {
+      if (spareNormal !== null) {
+        const z = spareNormal;
+        spareNormal = null;
+        return z;
+      }
+      const u1 = randUniformOpen();
+      const u2 = randUniformOpen();
       const r = Math.sqrt(-2 * Math.log(u1));
       const theta = 2 * Math.PI * u2;
-      return r * Math.cos(theta);
+      const z0 = r * Math.cos(theta);
+      const z1 = r * Math.sin(theta);
+      spareNormal = z1;
+      return z0;
     }
 
-    function randomExponential(lambda) {
-      let u = 0;
-      while (u === 0) u = Math.random();
-      return -Math.log(1 - u) / lambda;
+    function randNormal(mu, sigma) {
+      return mu + sigma * randStandardNormalBoxMuller();
     }
 
-    function normalPDF(x, mu, sigma) {
-      const z = (x - mu) / sigma;
-      return Math.exp(-0.5 * z * z) / (sigma * Math.sqrt(2 * Math.PI));
+    function randExponential(lambda) {
+      const u = randUniformOpen();
+      return -Math.log(u) / lambda;
     }
 
-    function computeBimodalPopulationStatsNumerically() {
-      const minX = -20;
-      const maxX = 120;
-      const step = 0.01;
-      const steps = Math.round((maxX - minX) / step);
-
-      let mass = 0;
-      let firstMoment = 0;
-      let secondMoment = 0;
-
-      for (let i = 0; i <= steps; i++) {
-        const x = minX + i * step;
-        const weight = (i === 0 || i === steps) ? 0.5 : 1;
-        const pdf = 0.5 * normalPDF(x, 30, 5) + 0.5 * normalPDF(x, 70, 5);
-
-        mass += weight * pdf;
-        firstMoment += weight * x * pdf;
-        secondMoment += weight * x * x * pdf;
+    function drawOneValue(shape) {
+      if (shape === "normal") {
+        return randNormal(50, 10);
       }
-
-      mass *= step;
-      firstMoment *= step;
-      secondMoment *= step;
-
-      const mean = firstMoment / mass;
-      const variance = Math.max(0, secondMoment / mass - mean * mean);
-
-      return { mean: mean, sd: Math.sqrt(variance) };
+      if (shape === "skewed") {
+        return randExponential(0.1);
+      }
+      return Math.random() < 0.5 ? randNormal(30, 5) : randNormal(70, 5);
     }
 
-    function computeMean(arr) {
-      let sum = 0;
-      for (let i = 0; i < arr.length; i++) sum += arr[i];
-      return sum / arr.length;
+    function simulateSampleMeans(shape, n, sims) {
+      const means = new Array(sims);
+      for (let i = 0; i < sims; i++) {
+        let sum = 0;
+        for (let j = 0; j < n; j++) {
+          sum += drawOneValue(shape);
+        }
+        means[i] = sum / n;
+      }
+      return means;
     }
 
-    function computeSampleSD(arr, mean) {
+    function mean(arr) {
+      let s = 0;
+      for (let i = 0; i < arr.length; i++) s += arr[i];
+      return s / arr.length;
+    }
+
+    function sampleSD(arr) {
       if (arr.length < 2) return 0;
+      const m = mean(arr);
       let ss = 0;
       for (let i = 0; i < arr.length; i++) {
-        const d = arr[i] - mean;
+        const d = arr[i] - m;
         ss += d * d;
       }
       return Math.sqrt(ss / (arr.length - 1));
     }
 
-    function computeMomentSkewness(arr, mean, sd) {
-      if (sd === 0) return 0;
-      let sum = 0;
-      for (let i = 0; i < arr.length; i++) {
-        const z = (arr[i] - mean) / sd;
-        sum += z * z * z;
+    function skewness(arr) {
+      const n = arr.length;
+      if (n < 3) return 0;
+      const m = mean(arr);
+      let m2 = 0;
+      let m3 = 0;
+      for (let i = 0; i < n; i++) {
+        const d = arr[i] - m;
+        m2 += d * d;
+        m3 += d * d * d;
       }
-      return sum / arr.length;
+      m2 /= n;
+      m3 /= n;
+      if (m2 === 0) return 0;
+      return m3 / Math.pow(m2, 1.5);
     }
 
-    function updateInterpretation(n, shape, observedSD, theoreticalSE, skewness) {
-      const shapeLabel = shape === "normal" ? "normal" : (shape === "skewed" ? "right-skewed" : "bimodal");
-      const descriptor = classifyHistogramShape(shape, skewness);
-      const relDiff = theoreticalSE === 0 ? 0 : Math.abs(observedSD - theoreticalSE) / theoreticalSE;
+    function erf(x) {
+      const sign = x < 0 ? -1 : 1;
+      const ax = Math.abs(x);
+      const a1 = 0.254829592;
+      const a2 = -0.284496736;
+      const a3 = 1.421413741;
+      const a4 = -1.453152027;
+      const a5 = 1.061405429;
+      const p = 0.3275911;
+      const t = 1 / (1 + p * ax);
+      const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-ax * ax);
+      return sign * y;
+    }
 
-      let closeness = "close to";
-      if (relDiff > 0.15 && relDiff <= 0.30) closeness = "reasonably close to";
-      if (relDiff > 0.30) closeness = "not especially close to";
+    function normalPdf(x, mu, sigma) {
+      const z = (x - mu) / sigma;
+      return Math.exp(-0.5 * z * z) / (sigma * Math.sqrt(2 * Math.PI));
+    }
 
-      let sentence = "With n=" + n + " and a " + shapeLabel + " population, the distribution of sample means is " + descriptor + ". ";
-      sentence += "The observed SD of means (" + observedSD.toFixed(4) + ") is " + closeness + " the theoretical SE (" + theoreticalSE.toFixed(4) + "), consistent with the Central Limit Theorem.";
+    function normalCdf(x, mu, sigma) {
+      return 0.5 * (1 + erf((x - mu) / (sigma * Math.SQRT2)));
+    }
 
-      if (shape !== "normal") {
-        if (n >= 30) {
-          sentence += " Compared with smaller n, the histogram should look tighter and more bell-shaped.";
-        } else if (n <= 10) {
-          sentence += " For small samples, non-normal population shape can still show through in the histogram.";
+    function expCdf(x, lambda) {
+      if (x <= 0) return 0;
+      return 1 - Math.exp(-lambda * x);
+    }
+
+    function bimodalPdf(x) {
+      return 0.5 * normalPdf(x, 30, 5) + 0.5 * normalPdf(x, 70, 5);
+    }
+
+    function bimodalCdf(x) {
+      return 0.5 * normalCdf(x, 30, 5) + 0.5 * normalCdf(x, 70, 5);
+    }
+
+    function computeBimodalStatsNumerically() {
+      const xMin = -20;
+      const xMax = 120;
+      const dx = 0.02;
+      let mass = 0;
+      let firstMoment = 0;
+      let secondMoment = 0;
+
+      for (let x = xMin + dx / 2; x < xMax; x += dx) {
+        const p = bimodalPdf(x);
+        const w = p * dx;
+        mass += w;
+        firstMoment += x * w;
+        secondMoment += x * x * w;
+      }
+
+      const mu = firstMoment / mass;
+      const variance = Math.max(0, secondMoment / mass - mu * mu);
+      return {
+        mean: mu,
+        sigma: Math.sqrt(variance)
+      };
+    }
+
+    function populationCdf(x, shape) {
+      if (shape === "normal") return normalCdf(x, 50, 10);
+      if (shape === "skewed") return expCdf(x, 0.1);
+      return bimodalCdf(x);
+    }
+
+    function buildPopulationHistogram(shape, bins, xMin, xMax) {
+      const counts = new Array(bins).fill(0);
+      const width = (xMax - xMin) / bins;
+
+      for (let i = 0; i < bins; i++) {
+        const left = xMin + i * width;
+        const right = left + width;
+
+        let prob;
+        if (i === 0) {
+          prob = populationCdf(right, shape);
+        } else if (i === bins - 1) {
+          prob = 1 - populationCdf(left, shape);
+        } else {
+          prob = populationCdf(right, shape) - populationCdf(left, shape);
+        }
+
+        counts[i] = Math.max(0, prob) * POP_PSEUDO_COUNT;
+      }
+
+      return { counts, xMin, xMax, bins };
+    }
+
+    function buildDataHistogram(data, bins, forcedMin, forcedMax) {
+      let xMin = forcedMin;
+      let xMax = forcedMax;
+
+      if (xMin == null || xMax == null) {
+        xMin = Infinity;
+        xMax = -Infinity;
+        for (let i = 0; i < data.length; i++) {
+          if (data[i] < xMin) xMin = data[i];
+          if (data[i] > xMax) xMax = data[i];
+        }
+
+        if (!isFinite(xMin) || !isFinite(xMax)) {
+          xMin = 0;
+          xMax = 1;
+        }
+
+        if (xMin === xMax) {
+          xMin -= 1;
+          xMax += 1;
+        } else {
+          const pad = 0.06 * (xMax - xMin);
+          xMin -= pad;
+          xMax += pad;
         }
       }
 
-      output.interpretation.textContent = sentence;
-    }
-
-    function classifyHistogramShape(shape, skewness) {
-      if (shape === "normal") return "approximately normal";
-      const absSkew = Math.abs(skewness);
-      if (absSkew < 0.35) return "approximately normal";
-      if (skewness > 0) return "still somewhat right-skewed";
-      return "still somewhat left-skewed";
-    }
-
-    function drawEmptyPlot(n) {
-      clearCanvas();
-      const dims = getPlotDims();
-      drawAxes(dims, 0, 1, 0, 1, true);
-      ctx.save();
-      ctx.fillStyle = "#6b7280";
-      ctx.font = "16px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText("Click Run Simulation to generate the sampling distribution.", canvas.width / 2, canvas.height / 2);
-      ctx.restore();
-      output.plotTitle.textContent = "Sampling Distribution of x-bar (n = " + n + ")";
-    }
-
-    function drawHistogram(values) {
-      const hist = buildHistogram(values, HIST_BINS);
-      clearCanvas();
-
-      const dims = getPlotDims();
-      const yMax = niceCeil(Math.max(1, hist.maxCount));
-      drawAxes(dims, hist.min, hist.max, 0, yMax, false);
-
-      const plotW = dims.plotW;
-      const plotH = dims.plotH;
-      const binWpx = plotW / hist.counts.length;
-
-      ctx.save();
-      ctx.fillStyle = "steelblue";
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 1;
-
-      for (let i = 0; i < hist.counts.length; i++) {
-        const count = hist.counts[i];
-        const barH = (count / yMax) * plotH;
-        const x = dims.left + i * binWpx + 1;
-        const y = dims.top + plotH - barH;
-        const w = Math.max(1, binWpx - 2);
-
-        ctx.fillRect(x, y, w, barH);
-        ctx.strokeRect(x, y, w, barH);
-      }
-      ctx.restore();
-    }
-
-    function buildHistogram(values, bins) {
-      let min = Infinity;
-      let max = -Infinity;
-
-      for (let i = 0; i < values.length; i++) {
-        if (values[i] < min) min = values[i];
-        if (values[i] > max) max = values[i];
-      }
-
-      if (min === max) {
-        min -= 0.5;
-        max += 0.5;
-      }
-
-      const range = max - min;
-      const pad = range * 0.03;
-      min -= pad;
-      max += pad;
-
-      const width = (max - min) / bins;
       const counts = new Array(bins).fill(0);
+      const width = (xMax - xMin) / bins;
 
-      for (let i = 0; i < values.length; i++) {
-        let idx = Math.floor((values[i] - min) / width);
+      if (width <= 0) {
+        return { counts, xMin, xMax, bins };
+      }
+
+      for (let i = 0; i < data.length; i++) {
+        let idx = Math.floor((data[i] - xMin) / width);
         if (idx < 0) idx = 0;
         if (idx >= bins) idx = bins - 1;
         counts[idx]++;
       }
 
-      let maxCount = 0;
-      for (let i = 0; i < counts.length; i++) {
-        if (counts[i] > maxCount) maxCount = counts[i];
-      }
-
-      return { min, max, counts, maxCount };
+      return { counts, xMin, xMax, bins };
     }
 
-    function clearCanvas() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-
-    function getPlotDims() {
-      const left = 78;
-      const right = 24;
-      const top = 24;
-      const bottom = 72;
-      return {
-        left,
-        right,
-        top,
-        bottom,
-        plotW: canvas.width - left - right,
-        plotH: canvas.height - top - bottom
-      };
-    }
-
-    function drawAxes(dims, xMin, xMax, yMin, yMax, placeholder) {
-      const x0 = dims.left;
-      const y0 = dims.top + dims.plotH;
-      const x1 = dims.left + dims.plotW;
-      const y1 = dims.top;
-
-      ctx.save();
-      ctx.strokeStyle = "#111827";
-      ctx.fillStyle = "#111827";
-      ctx.lineWidth = 1.2;
-      ctx.font = "13px Arial";
-
-      // Axes lines
-      ctx.beginPath();
-      ctx.moveTo(x0, y0);
-      ctx.lineTo(x1, y0);
-      ctx.moveTo(x0, y0);
-      ctx.lineTo(x0, y1);
-      ctx.stroke();
-
-      // X ticks (at least 5; here 6)
-      const xTicks = 6;
-      const xRange = xMax - xMin;
-      for (let i = 0; i < xTicks; i++) {
-        const frac = i / (xTicks - 1);
-        const x = x0 + frac * dims.plotW;
-        const val = xMin + frac * xRange;
-
-        ctx.beginPath();
-        ctx.moveTo(x, y0);
-        ctx.lineTo(x, y0 + 6);
-        ctx.stroke();
-
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-        ctx.fillText(formatXAxisTick(val, xRange), x, y0 + 9);
-      }
-
-      // Y ticks
-      const yTicks = 6;
-      const yRange = yMax - yMin;
-      for (let i = 0; i < yTicks; i++) {
-        const frac = i / (yTicks - 1);
-        const y = y0 - frac * dims.plotH;
-        const val = yMin + frac * yRange;
-
-        ctx.beginPath();
-        ctx.moveTo(x0 - 6, y);
-        ctx.lineTo(x0, y);
-        ctx.stroke();
-
-        ctx.textAlign = "right";
-        ctx.textBaseline = "middle";
-        ctx.fillText(String(Math.round(val)), x0 - 10, y);
-      }
-
-      // X-axis label
-      ctx.textAlign = "center";
-      ctx.textBaseline = "bottom";
-      ctx.font = "15px Arial";
-      ctx.fillText("Sample Mean (x-bar)", x0 + dims.plotW / 2, canvas.height - 10);
-
-      // Y-axis label
-      ctx.save();
-      ctx.translate(22, y1 + dims.plotH / 2);
-      ctx.rotate(-Math.PI / 2);
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      ctx.font = "15px Arial";
-      ctx.fillText("Frequency", 0, 0);
-      ctx.restore();
-
-      // Subtle gridlines (skip if placeholder to keep it cleaner)
-      if (!placeholder) {
-        ctx.save();
-        ctx.strokeStyle = "#e5e7eb";
-        ctx.lineWidth = 1;
-        for (let i = 1; i < yTicks; i++) {
-          const frac = i / (yTicks - 1);
-          const y = y0 - frac * dims.plotH;
-          ctx.beginPath();
-          ctx.moveTo(x0, y);
-          ctx.lineTo(x1, y);
-          ctx.stroke();
-        }
-        ctx.restore();
-      }
-
-      ctx.restore();
-    }
-
-    function formatXAxisTick(value, range) {
-      if (range < 2) return value.toFixed(2);
-      if (range < 20) return value.toFixed(1);
-      return value.toFixed(0);
-    }
-
-    function niceCeil(value) {
-      if (value <= 1) return 1;
-      const exponent = Math.floor(Math.log10(value));
-      const base = Math.pow(10, exponent);
-      const fraction = value / base;
-
+    function niceStep(maxValue, targetTicks) {
+      if (maxValue <= 0) return 1;
+      const raw = maxValue / targetTicks;
+      const exponent = Math.floor(Math.log10(raw));
+      const fraction = raw / Math.pow(10, exponent);
       let niceFraction;
+
       if (fraction <= 1) niceFraction = 1;
       else if (fraction <= 2) niceFraction = 2;
       else if (fraction <= 5) niceFraction = 5;
       else niceFraction = 10;
 
-      return niceFraction * base;
+      return niceFraction * Math.pow(10, exponent);
     }
+
+    function formatTick(value, span) {
+      let digits = 2;
+      if (span >= 50) digits = 0;
+      else if (span >= 10) digits = 1;
+      else if (span >= 2) digits = 2;
+      else digits = 3;
+
+      let txt = value.toFixed(digits);
+      if (digits > 0) {
+        txt = txt.replace(/\.?0+$/, "");
+      }
+      return txt;
+    }
+
+    function drawAxesAndHistogram(area, hist, options) {
+      const x = area.x;
+      const y = area.y;
+      const w = area.w;
+      const h = area.h;
+
+      const counts = hist.counts;
+      let maxCount = 0;
+      for (let i = 0; i < counts.length; i++) {
+        if (counts[i] > maxCount) maxCount = counts[i];
+      }
+      if (maxCount <= 0) maxCount = 1;
+
+      const yStep = niceStep(maxCount, 5);
+      const yMax = Math.ceil(maxCount / yStep) * yStep;
+
+      ctx.save();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(x, y, w, h);
+
+      ctx.strokeStyle = "#e5e7eb";
+      ctx.lineWidth = 1;
+      for (let t = 0; t <= yMax + 1e-12; t += yStep) {
+        const py = y + h - (t / yMax) * h;
+        ctx.beginPath();
+        ctx.moveTo(x, py);
+        ctx.lineTo(x + w, py);
+        ctx.stroke();
+      }
+
+      const binWidthPx = w / hist.bins;
+      ctx.fillStyle = options.barColor || "#4682b4";
+      for (let i = 0; i < hist.bins; i++) {
+        const c = counts[i];
+        const bh = (c / yMax) * h;
+        const bx = x + i * binWidthPx;
+        const by = y + h - bh;
+        ctx.fillRect(bx + 1, by, Math.max(1, binWidthPx - 2), bh);
+      }
+
+      ctx.strokeStyle = "#111827";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x, y + h);
+      ctx.lineTo(x + w, y + h);
+      ctx.stroke();
+
+      ctx.fillStyle = "#111827";
+      ctx.font = "12px Arial";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      for (let t = 0; t <= yMax + 1e-12; t += yStep) {
+        const py = y + h - (t / yMax) * h;
+        ctx.beginPath();
+        ctx.moveTo(x - 6, py);
+        ctx.lineTo(x, py);
+        ctx.strokeStyle = "#111827";
+        ctx.stroke();
+        ctx.fillText(String(Math.round(t)), x - 10, py);
+      }
+
+      const xTicks = 5;
+      const span = hist.xMax - hist.xMin;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      for (let i = 0; i <= xTicks; i++) {
+        const xv = hist.xMin + (i / xTicks) * span;
+        const px = x + (i / xTicks) * w;
+        ctx.beginPath();
+        ctx.moveTo(px, y + h);
+        ctx.lineTo(px, y + h + 6);
+        ctx.strokeStyle = "#111827";
+        ctx.stroke();
+        ctx.fillText(formatTick(xv, span), px, y + h + 10);
+      }
+
+      ctx.font = "bold 14px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(options.xLabel, x + w / 2, y + h + 38);
+
+      ctx.save();
+      ctx.translate(x - 52, y + h / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.font = "bold 14px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("Frequency", 0, 0);
+      ctx.restore();
+
+      if (typeof options.meanLineValue === "number") {
+        const ratio = (options.meanLineValue - hist.xMin) / (hist.xMax - hist.xMin);
+        const mx = x + ratio * w;
+        ctx.strokeStyle = "#b91c1c";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(mx, y);
+        ctx.lineTo(mx, y + h);
+        ctx.stroke();
+
+        ctx.fillStyle = "#b91c1c";
+        ctx.font = "bold 12px Arial";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        const labelX = Math.min(x + w - 70, Math.max(x + 4, mx + 6));
+        ctx.fillText("True mean", labelX, y + 4);
+      }
+
+      ctx.restore();
+    }
+
+    function drawTitle(text, centerX, topY) {
+      ctx.save();
+      ctx.fillStyle = "#111827";
+      ctx.font = "bold 20px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText(text, centerX, topY);
+      ctx.restore();
+    }
+
+    function drawPlaceholderBottom(area, n, sharedXMin, sharedXMax) {
+      ctx.save();
+      ctx.fillStyle = "#6b7280";
+      ctx.font = "15px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("Run a simulation to draw the sampling distribution of x-bar.", area.x + area.w / 2, area.y + area.h / 2);
+      ctx.restore();
+
+      const emptyHist = {
+        counts: new Array(getSampleMeanBins()).fill(0),
+        xMin: sharedXMin,
+        xMax: sharedXMax,
+        bins: getSampleMeanBins()
+      };
+      drawAxesAndHistogram(area, emptyHist, { xLabel: "Sample Mean (x-bar)" });
+    }
+
+    function drawAll(shape, n, sampleMeans) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const topArea = { x: 90, y: 80, w: 860, h: 230 };
+      const bottomArea = { x: 90, y: 430, w: 860, h: 230 };
+
+      const info = getPopulationInfo(shape);
+      const sharedXMin = info.xMin;
+      const sharedXMax = info.xMax;
+
+      const popHist = buildPopulationHistogram(shape, HIST_BINS, sharedXMin, sharedXMax);
+
+      drawTitle("True population distribution", canvas.width / 2, 24);
+      drawAxesAndHistogram(topArea, popHist, {
+        xLabel: "x-values",
+        meanLineValue: info.mean,
+        barColor: "#4682b4"
+      });
+
+      drawTitle(`Sampling Distribution of x-bar (n = ${n})`, canvas.width / 2, 374);
+
+      if (Array.isArray(sampleMeans) && sampleMeans.length > 0) {
+        const sampleHist = buildDataHistogram(sampleMeans, getSampleMeanBins(), sharedXMin, sharedXMax);
+        drawAxesAndHistogram(bottomArea, sampleHist, {
+          xLabel: "Sample Mean (x-bar)",
+          barColor: "#4682b4"
+        });
+      } else {
+        drawPlaceholderBottom(bottomArea, n, sharedXMin, sharedXMax);
+      }
+    }
+
+    function buildInterpretation(shape, n, populationMean, observedMean, observedSD, sampleMeans) {
+      const sk = skewness(sampleMeans);
+      let approxWord = "approximately normal";
+      if (sk > 0.35) approxWord = "still somewhat right-skewed";
+      else if (sk < -0.35) approxWord = "slightly left-skewed";
+
+      const meanGap = Math.abs(observedMean - populationMean);
+      let centeringText = "very close to";
+      if (meanGap > 1.0) centeringText = "noticeably different from";
+      else if (meanGap > 0.35) centeringText = "close to";
+
+      const shapeLabel = getPopulationInfo(shape).label;
+
+      const sentence1 = `With n=${n} and a ${shapeLabel} population, the distribution of sample means is ${approxWord}.`;
+      const sentence2 = `The sample means are centered ${centeringText} the true population mean (${populationMean.toFixed(2)}).`;
+      const sentence3 = `Their observed SD (${observedSD.toFixed(4)}) shows the reduced variability that comes from averaging n observations, which is consistent with the Central Limit Theorem.`;
+
+      return `${sentence1} ${sentence2} ${sentence3}`;
+    }
+
+    function runSimulation() {
+      const n = parseInt(nSlider.value, 10);
+      const sims = parseInt(simSlider.value, 10);
+      const shape = document.getElementById("shapeSelect").value;
+
+      const info = getPopulationInfo(shape);
+      const sampleMeans = simulateSampleMeans(shape, n, sims);
+
+      const meanOfMeans = mean(sampleMeans);
+      const sdOfMeans = sampleSD(sampleMeans);
+
+      populationMeanEl.textContent = info.mean.toFixed(2);
+      populationSdEl.textContent = info.sigma.toFixed(4);
+      meanMeansEl.textContent = meanOfMeans.toFixed(2);
+      sdMeansEl.textContent = sdOfMeans.toFixed(4);
+      completedSimsEl.textContent = String(sims);
+      interpretationEl.textContent = buildInterpretation(shape, n, info.mean, meanOfMeans, sdOfMeans, sampleMeans);
+
+      drawAll(shape, n, sampleMeans);
+    }
+
+    nSlider.addEventListener("input", () => {
+      updateDisplayedControlValues();
+      drawAll(shapeSelect.value, parseInt(nSlider.value, 10), null);
+    });
+
+    simSlider.addEventListener("input", () => {
+      updateDisplayedControlValues();
+    });
+
+    shapeSelect.addEventListener("change", () => {
+      drawAll(shapeSelect.value, parseInt(nSlider.value, 10), null);
+    });
+
+    document.getElementById("runBtn").addEventListener("click", runSimulation);
+    document.getElementById("resetBtn").addEventListener("click", resetApp);
+
+    resetApp();
   </script>
 </body>
 </html>
