@@ -1,0 +1,746 @@
+<!--
+INSTRUCTOR EDITS:
+- Change DEFAULT_N, DEFAULT_SIMS, DEFAULT_CONF_LEVEL, and DEFAULT_SHAPE in the script to set startup defaults.
+- Change the slider min/max/step values in the HTML controls if you want different ranges.
+- Confidence intervals in this applet use z*SE with the true population SD (appropriate here because the applet is illustrating repeated-sampling coverage under the CLT setup requested).
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interpreting confidence intervals for the mean (assuming the CLT holds)</title>
+  <style>
+    :root{
+      --bg:#f5f7fb;
+      --panel:#ffffff;
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --border:#d9e2ec;
+      --accent:#4f46e5;
+      --good:#2a9d8f;
+      --bad:#e63946;
+      --point:cornflowerblue;
+      --truth:#7c3aed;
+      --line:#111827;
+    }
+
+    *{box-sizing:border-box;}
+
+    body{
+      margin:0;
+      font-family:Arial, Helvetica, sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+      line-height:1.4;
+    }
+
+    .wrap{
+      max-width:1200px;
+      margin:0 auto;
+      padding:18px;
+    }
+
+    h1{
+      margin:0 0 8px;
+      text-align:center;
+      font-size:1.9rem;
+    }
+
+    .subtitle{
+      margin:0 0 18px;
+      text-align:center;
+      color:var(--muted);
+      font-size:0.98rem;
+    }
+
+    .layout{
+      display:grid;
+      grid-template-columns:340px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:14px;
+      box-shadow:0 3px 12px rgba(15, 23, 42, 0.05);
+    }
+
+    .panel h2, .panel h3{
+      margin:0 0 10px;
+      font-size:1.05rem;
+    }
+
+    .control{
+      margin-bottom:16px;
+    }
+
+    .control label{
+      display:block;
+      font-weight:700;
+      margin-bottom:6px;
+    }
+
+    .current{
+      color:var(--accent);
+      font-weight:700;
+    }
+
+    input[type="range"]{
+      width:100%;
+      cursor:pointer;
+    }
+
+    select{
+      width:100%;
+      padding:9px 10px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background:#fff;
+      font-size:0.98rem;
+      color:var(--ink);
+    }
+
+    .btn-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+
+    button{
+      border:none;
+      border-radius:10px;
+      padding:10px 14px;
+      font-weight:700;
+      cursor:pointer;
+      font-size:0.95rem;
+    }
+
+    .run-btn{
+      background:var(--accent);
+      color:#fff;
+    }
+
+    .reset-btn{
+      background:#e5e7eb;
+      color:#111827;
+    }
+
+    .small-note{
+      color:var(--muted);
+      font-size:0.9rem;
+      margin-top:8px;
+    }
+
+    .stat-row{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      padding:8px 0;
+      border-bottom:1px solid #eef2f7;
+    }
+
+    .stat-row:last-child{
+      border-bottom:none;
+    }
+
+    .stat-label{
+      color:var(--muted);
+    }
+
+    .stat-value{
+      font-weight:700;
+      font-variant-numeric:tabular-nums;
+    }
+
+    .interp{
+      min-height:88px;
+    }
+
+    .plot-title{
+      text-align:center;
+      font-weight:700;
+      font-size:1.08rem;
+      margin-bottom:8px;
+    }
+
+    .legend{
+      display:flex;
+      gap:16px;
+      justify-content:center;
+      flex-wrap:wrap;
+      font-size:0.9rem;
+      color:var(--muted);
+      margin-bottom:8px;
+    }
+
+    .legend-item{
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+
+    .swatch{
+      width:14px;
+      height:14px;
+      border-radius:3px;
+      border:1px solid rgba(0,0,0,0.12);
+      display:inline-block;
+    }
+
+    canvas{
+      display:block;
+      width:100%;
+      max-width:100%;
+      border:1px solid var(--border);
+      border-radius:12px;
+      background:#fff;
+    }
+
+    @media (max-width: 930px){
+      .layout{
+        grid-template-columns:1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Interpreting confidence intervals for the mean (assuming the CLT holds)</h1>
+    <p class="subtitle">
+      Repeated samples produce many confidence intervals. Approximately the chosen confidence level of them should contain the true mean.
+    </p>
+
+    <div class="layout">
+      <div>
+        <div class="panel">
+          <h2>Controls</h2>
+
+          <div class="control">
+            <label for="nSlider">Sample size n: <span class="current" id="nValue">30</span></label>
+            <input id="nSlider" type="range" min="5" max="200" step="1" value="30" />
+          </div>
+
+          <div class="control">
+            <label for="simSlider">Number of simulations: <span class="current" id="simValue">100</span></label>
+            <input id="simSlider" type="range" min="100" max="500" step="100" value="100" />
+          </div>
+
+          <div class="control">
+            <label for="confSelect">Confidence level 1-α: <span class="current" id="confValue">0.95</span></label>
+            <select id="confSelect">
+              <option value="0.90">0.90</option>
+              <option value="0.95" selected>0.95</option>
+              <option value="0.99">0.99</option>
+            </select>
+          </div>
+
+          <div class="control">
+            <label for="shapeSelect">Population shape: <span class="current" id="shapeValue">Normal</span></label>
+            <select id="shapeSelect">
+              <option value="normal" selected>Normal</option>
+              <option value="skewed">Right-skewed</option>
+              <option value="bimodal">Bimodal</option>
+            </select>
+          </div>
+
+          <div class="btn-row">
+            <button class="run-btn" id="runBtn">Run Simulation</button>
+            <button class="reset-btn" id="resetBtn">Reset</button>
+          </div>
+
+          <div class="small-note">
+            Normal uses Box-Muller with μ = 50 and σ = 10; Right-skewed uses Exp(λ = 0.1); Bimodal uses 50% N(30, 5) and 50% N(70, 5).
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:16px;" aria-live="polite">
+          <h3>Numbers Panel</h3>
+          <div class="stat-row">
+            <span class="stat-label">Proportion of simulated CIs that include the true mean</span>
+            <span class="stat-value" id="coverageValue">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Number of simulations completed</span>
+            <span class="stat-value" id="simCountValue">—</span>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:16px;" aria-live="polite">
+          <h3>Interpretation Panel</h3>
+          <div class="interp" id="interpretation">
+            Run a simulation to compare the observed CI coverage with the chosen confidence level.
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="plot-title">Confidence interval for the population mean</div>
+        <div class="legend">
+          <div class="legend-item"><span class="swatch" style="background: var(--good);"></span>CI contains true mean</div>
+          <div class="legend-item"><span class="swatch" style="background: var(--bad);"></span>CI misses true mean</div>
+          <div class="legend-item"><span class="swatch" style="background: var(--point);"></span>Sample mean</div>
+        </div>
+        <canvas id="plotCanvas" width="900" height="560"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    const DEFAULT_N = 30;
+    const DEFAULT_SIMS = 100;
+    const DEFAULT_CONF_LEVEL = "0.95";
+    const DEFAULT_SHAPE = "normal";
+
+    const Z_CRITICAL = {
+      "0.90": 1.6448536269514722,
+      "0.95": 1.959963984540054,
+      "0.99": 2.5758293035489004
+    };
+
+    const SHAPE_LABEL = {
+      normal: "Normal",
+      skewed: "Right-skewed",
+      bimodal: "Bimodal"
+    };
+
+    const nSlider = document.getElementById("nSlider");
+    const simSlider = document.getElementById("simSlider");
+    const confSelect = document.getElementById("confSelect");
+    const shapeSelect = document.getElementById("shapeSelect");
+    const runBtn = document.getElementById("runBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    const nValue = document.getElementById("nValue");
+    const simValue = document.getElementById("simValue");
+    const confValue = document.getElementById("confValue");
+    const shapeValue = document.getElementById("shapeValue");
+
+    const coverageValue = document.getElementById("coverageValue");
+    const simCountValue = document.getElementById("simCountValue");
+    const interpretation = document.getElementById("interpretation");
+
+    const canvas = document.getElementById("plotCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const bimodalStats = computeBimodalPopulationStatsNumerically();
+
+    nSlider.addEventListener("input", updateDisplayedControls);
+    simSlider.addEventListener("input", updateDisplayedControls);
+    confSelect.addEventListener("change", updateDisplayedControls);
+    shapeSelect.addEventListener("change", updateDisplayedControls);
+
+    runBtn.addEventListener("click", function () {
+      const n = parseInt(document.getElementById("nSlider").value, 10);
+      const simulations = parseInt(document.getElementById("simSlider").value, 10);
+      const confLevel = document.getElementById("confSelect").value;
+      const shape = document.getElementById("shapeSelect").value;
+
+      runSimulation(n, simulations, confLevel, shape);
+    });
+
+    resetBtn.addEventListener("click", resetApp);
+
+    initialize();
+
+    function initialize() {
+      nSlider.value = String(DEFAULT_N);
+      simSlider.value = String(DEFAULT_SIMS);
+      confSelect.value = DEFAULT_CONF_LEVEL;
+      shapeSelect.value = DEFAULT_SHAPE;
+      updateDisplayedControls();
+      clearOutputs();
+      drawPlaceholder();
+    }
+
+    function updateDisplayedControls() {
+      nValue.textContent = nSlider.value;
+      simValue.textContent = simSlider.value;
+      confValue.textContent = confSelect.value;
+      shapeValue.textContent = SHAPE_LABEL[shapeSelect.value];
+    }
+
+    function clearOutputs() {
+      coverageValue.textContent = "—";
+      simCountValue.textContent = "—";
+      interpretation.textContent = "Run a simulation to compare the observed CI coverage with the chosen confidence level.";
+    }
+
+    function resetApp() {
+      nSlider.value = String(DEFAULT_N);
+      simSlider.value = String(DEFAULT_SIMS);
+      confSelect.value = DEFAULT_CONF_LEVEL;
+      shapeSelect.value = DEFAULT_SHAPE;
+      updateDisplayedControls();
+      clearOutputs();
+      drawPlaceholder();
+    }
+
+    function runSimulation(n, simulations, confLevel, shape) {
+      const sigma = getPopulationSigma(shape);
+      const mu = getPopulationMean(shape);
+      const se = sigma / Math.sqrt(n);
+      const z = Z_CRITICAL[confLevel];
+
+      const results = [];
+      let containsCount = 0;
+
+      for (let i = 0; i < simulations; i++) {
+        let sum = 0;
+        for (let j = 0; j < n; j++) {
+          sum += drawFromPopulation(shape);
+        }
+
+        const xbar = sum / n;
+        const lower = xbar - z * se;
+        const upper = xbar + z * se;
+        const contains = (lower <= mu && mu <= upper);
+
+        if (contains) containsCount++;
+
+        results.push({
+          index: i + 1,
+          mean: xbar,
+          lower: lower,
+          upper: upper,
+          contains: contains
+        });
+      }
+
+      const coverage = containsCount / simulations;
+
+      coverageValue.textContent = coverage.toFixed(2);
+      simCountValue.textContent = String(simulations);
+
+      drawCIPlot(results, mu);
+      updateInterpretation(n, shape, confLevel, coverage, simulations);
+    }
+
+    function drawFromPopulation(shape) {
+      if (shape === "normal") {
+        return randomNormal(50, 10);
+      }
+      if (shape === "skewed") {
+        return randomExponential(0.1);
+      }
+      return Math.random() < 0.5 ? randomNormal(30, 5) : randomNormal(70, 5);
+    }
+
+    function getPopulationMean(shape) {
+      if (shape === "normal") return 50;
+      if (shape === "skewed") return 10;
+      return bimodalStats.mean;
+    }
+
+    function getPopulationSigma(shape) {
+      if (shape === "normal") return 10;
+      if (shape === "skewed") return 10;
+      return bimodalStats.sd;
+    }
+
+    function randomNormal(mu, sigma) {
+      return mu + sigma * standardNormalBoxMuller();
+    }
+
+    function standardNormalBoxMuller() {
+      let u1 = 0;
+      let u2 = 0;
+      while (u1 === 0) u1 = Math.random();
+      while (u2 === 0) u2 = Math.random();
+      const r = Math.sqrt(-2 * Math.log(u1));
+      const theta = 2 * Math.PI * u2;
+      return r * Math.cos(theta);
+    }
+
+    function randomExponential(lambda) {
+      let u = 0;
+      while (u === 0) u = Math.random();
+      return -Math.log(1 - u) / lambda;
+    }
+
+    function normalPDF(x, mu, sigma) {
+      const z = (x - mu) / sigma;
+      return Math.exp(-0.5 * z * z) / (sigma * Math.sqrt(2 * Math.PI));
+    }
+
+    function computeBimodalPopulationStatsNumerically() {
+      const minX = -20;
+      const maxX = 120;
+      const step = 0.01;
+      const steps = Math.round((maxX - minX) / step);
+
+      let mass = 0;
+      let firstMoment = 0;
+      let secondMoment = 0;
+
+      for (let i = 0; i <= steps; i++) {
+        const x = minX + i * step;
+        const weight = (i === 0 || i === steps) ? 0.5 : 1.0;
+        const pdf = 0.5 * normalPDF(x, 30, 5) + 0.5 * normalPDF(x, 70, 5);
+
+        mass += weight * pdf;
+        firstMoment += weight * x * pdf;
+        secondMoment += weight * x * x * pdf;
+      }
+
+      mass *= step;
+      firstMoment *= step;
+      secondMoment *= step;
+
+      const mean = firstMoment / mass;
+      const variance = Math.max(0, secondMoment / mass - mean * mean);
+
+      return {
+        mean: mean,
+        sd: Math.sqrt(variance)
+      };
+    }
+
+    function drawPlaceholder() {
+      clearCanvas();
+      const dims = getPlotDims();
+      drawAxes(dims, 1, 100, 0, 100, true);
+
+      ctx.save();
+      ctx.fillStyle = "#6b7280";
+      ctx.font = "16px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("Click Run Simulation to draw confidence intervals.", canvas.width / 2, canvas.height / 2);
+      ctx.restore();
+    }
+
+    function drawCIPlot(results, trueMean) {
+      clearCanvas();
+
+      const dims = getPlotDims();
+      const sims = results.length;
+
+      let yMin = Infinity;
+      let yMax = -Infinity;
+
+      for (let i = 0; i < results.length; i++) {
+        if (results[i].lower < yMin) yMin = results[i].lower;
+        if (results[i].upper > yMax) yMax = results[i].upper;
+      }
+
+      if (trueMean < yMin) yMin = trueMean;
+      if (trueMean > yMax) yMax = trueMean;
+
+      if (yMin === yMax) {
+        yMin -= 1;
+        yMax += 1;
+      }
+
+      const pad = Math.max(1, 0.08 * (yMax - yMin));
+      yMin -= pad;
+      yMax += pad;
+
+      drawAxes(dims, 1, sims, yMin, yMax, false);
+
+      const yMap = function (y) {
+        return dims.top + dims.plotH - ((y - yMin) / (yMax - yMin)) * dims.plotH;
+      };
+
+      const xMap = function (x) {
+        if (sims === 1) return dims.left + dims.plotW / 2;
+        return dims.left + ((x - 1) / (sims - 1)) * dims.plotW;
+      };
+
+      const trueY = yMap(trueMean);
+
+      ctx.save();
+      ctx.strokeStyle = getCSSVar("--truth");
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(dims.left, trueY);
+      ctx.lineTo(dims.left + dims.plotW, trueY);
+      ctx.stroke();
+
+      ctx.fillStyle = getCSSVar("--truth");
+      ctx.font = "12px Arial";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "bottom";
+      ctx.fillText("True mean = " + formatNumber(trueMean, yMax - yMin), dims.left + 6, trueY - 6);
+      ctx.restore();
+
+      const spacing = sims > 1 ? dims.plotW / (sims - 1) : dims.plotW;
+      const capHalf = Math.max(2, Math.min(6, spacing * 0.35));
+      const lineWidth = Math.max(1, Math.min(2.2, spacing * 0.55));
+      const pointRadius = Math.max(1.6, Math.min(3.2, spacing * 0.35));
+
+      for (let i = 0; i < results.length; i++) {
+        const r = results[i];
+        const x = xMap(r.index);
+        const yLo = yMap(r.lower);
+        const yHi = yMap(r.upper);
+
+        ctx.save();
+        ctx.strokeStyle = r.contains ? getCSSVar("--good") : getCSSVar("--bad");
+        ctx.lineWidth = lineWidth;
+
+        ctx.beginPath();
+        ctx.moveTo(x, yLo);
+        ctx.lineTo(x, yHi);
+        ctx.moveTo(x - capHalf, yLo);
+        ctx.lineTo(x + capHalf, yLo);
+        ctx.moveTo(x - capHalf, yHi);
+        ctx.lineTo(x + capHalf, yHi);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      for (let i = 0; i < results.length; i++) {
+        const r = results[i];
+        const x = xMap(r.index);
+        const y = yMap(r.mean);
+
+        ctx.save();
+        ctx.fillStyle = getCSSVar("--point");
+        ctx.beginPath();
+        ctx.arc(x, y, pointRadius, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function getPlotDims() {
+      const left = 88;
+      const right = 20;
+      const top = 34;
+      const bottom = 80;
+
+      return {
+        left: left,
+        right: right,
+        top: top,
+        bottom: bottom,
+        plotW: canvas.width - left - right,
+        plotH: canvas.height - top - bottom
+      };
+    }
+
+    function drawAxes(dims, xMin, xMax, yMin, yMax, placeholder) {
+      const x0 = dims.left;
+      const y0 = dims.top + dims.plotH;
+      const x1 = dims.left + dims.plotW;
+      const y1 = dims.top;
+
+      ctx.save();
+      ctx.strokeStyle = getCSSVar("--line");
+      ctx.fillStyle = getCSSVar("--line");
+      ctx.lineWidth = 1.2;
+      ctx.font = "13px Arial";
+
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x1, y0);
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x0, y1);
+      ctx.stroke();
+
+      const xTicks = 10;
+      for (let i = 0; i <= xTicks; i++) {
+        const frac = i / xTicks;
+        const x = x0 + frac * dims.plotW;
+        const value = xMin + frac * (xMax - xMin);
+
+        ctx.beginPath();
+        ctx.moveTo(x, y0);
+        ctx.lineTo(x, y0 + 6);
+        ctx.stroke();
+
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.fillText(String(Math.round(value)), x, y0 + 9);
+      }
+
+      const yTicks = 6;
+      for (let i = 0; i <= yTicks; i++) {
+        const frac = i / yTicks;
+        const y = y0 - frac * dims.plotH;
+        const value = yMin + frac * (yMax - yMin);
+
+        ctx.beginPath();
+        ctx.moveTo(x0 - 6, y);
+        ctx.lineTo(x0, y);
+        ctx.stroke();
+
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        ctx.fillText(formatNumber(value, yMax - yMin), x0 - 10, y);
+
+        if (!placeholder && i > 0 && i < yTicks) {
+          ctx.save();
+          ctx.strokeStyle = "#e8edf3";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x0, y);
+          ctx.lineTo(x1, y);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.font = "15px Arial";
+      ctx.fillText("Simulation number", x0 + dims.plotW / 2, canvas.height - 12);
+
+      ctx.save();
+      ctx.translate(24, y1 + dims.plotH / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.font = "15px Arial";
+      ctx.fillText("CI for mu", 0, 0);
+      ctx.restore();
+
+      ctx.restore();
+    }
+
+    function formatNumber(value, range) {
+      if (range < 5) return value.toFixed(2);
+      if (range < 30) return value.toFixed(1);
+      return value.toFixed(0);
+    }
+
+    function getCSSVar(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    function updateInterpretation(n, shape, confLevel, coverage, simulations) {
+      const shapeText = SHAPE_LABEL[shape].toLowerCase();
+      const nominal = parseFloat(confLevel);
+      const mcse = Math.sqrt(nominal * (1 - nominal) / simulations);
+      const diff = Math.abs(coverage - nominal);
+
+      let consistencyText = "is consistent with";
+      if (diff > 2 * mcse) {
+        consistencyText = "is somewhat different from";
+      }
+
+      let sentence1 = "With n = " + n + ", a " + shapeText + " population, and a confidence level of 1-α = " + confLevel + ", the proportion of simulated CIs that include the true mean is " + coverage.toFixed(2) + ".";
+      let sentence2 = "This observed proportion " + consistencyText + " the chosen confidence level.";
+
+      if (shape !== "normal" && n <= 10) {
+        sentence2 += " For small samples from a non-normal population, the CLT approximation can be rougher.";
+      }
+
+      interpretation.textContent = sentence1 + " " + sentence2;
+    }
+  </script>
+</body>
+</html>
