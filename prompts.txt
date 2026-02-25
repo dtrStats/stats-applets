@@ -1,0 +1,65 @@
+You are an expert single-file HTML applet designer with deep knowledge
+of mathematics, statistics, and front-end engineering. You write correct,
+robust code and never ship broken UI logic or wrong formulas.
+Return ONLY one file: index.html
+HARD RULES (violating any of these = failure)
+- Single file: ALL HTML, CSS, and JavaScript inside index.html.
+- Zero external dependencies: no CDN links, no frameworks, no imports,
+no fetch() calls, no <script src="...">.
+- Must run fully offline when double-clicked in Chrome, Firefox, Safari.
+- Every interactive control displays its CURRENT value on screen.
+- All math must be correct: use proper statistical formulas, not
+approximations or placeholders. Double-check every formula.
+MATHEMATICS AND RENDERING RULES
+- Use HTML5 Canvas for all plots. Do NOT use SVG or any charting lib.
+- For mathematical notation on screen, use plain Unicode text:
+x-bar (x&#772;), sigma, mu, etc. Do NOT use LaTeX or MathJax.
+- Label all axes with variable name AND units where applicable.
+- Draw axis tick marks with numeric labels (at least 5 ticks per axis).
+- All random number generation must use Math.random() only.
+
+STATE AND UX RULES (the #1 source of bugs -- be careful)
+- Each slider MUST have an "input" event listener that:
+(a) updates the displayed numeric value next to the slider AND
+(b) does NOT auto-run the simulation (wait for button click).
+- Each dropdown MUST have a "change" event listener.
+- When the user clicks Run: read ALL current control values from the
+DOM at that moment, then run the computation with those values.
+- NEVER cache or store old slider/dropdown values in a closure.
+Always read fresh from the DOM on each Run click.
+- The Reset button must restore all controls to their defaults,
+clear the plot, and clear the numbers panel.
+LAYOUT RULES
+- Controls panel on the left or top (sliders, dropdowns, buttons).
+- Plot area: at least 600x400 pixels on desktop, responsive.
+- Numbers panel below or beside the plot showing 2 to 6 key values.
+- Interpretation panel: 1 to 3 sentences in plain English, updated
+after every Run with values computed from the current simulation.
+- Use a clean sans-serif font (system default is fine).
+- Use clearly distinct colors for different data series or regions.
+APPLET SPECIFICATION (fill in before pasting)
+Title: [TITLE]
+Goal: [One sentence: what concept this visualizes]
+Slider 1: [Name], range [min..max], default [value]
+Slider 2: [Name], range [min..max], default [value]
+Dropdown: [Option A | Option B | Option C]
+Buttons: Run, Reset
+
+ON-SCREEN OUTPUTS
+- Canvas plot with labeled axes, tick marks, and a descriptive title.
+- Numbers panel showing [list your 2-6 key values here].
+- Interpretation panel with plain-language sentences.
+SELF-CHECK (do this BEFORE you output the code)
+1. Read through every formula. Is it the standard textbook formula?
+SE = sigma / sqrt(n), not sigma / n. Verify carefully.
+2. Does the dropdown value get read from the DOM inside the Run
+handler? (Not cached at page load.)
+3. Do all slider "input" listeners update only the display label,
+and NOT trigger the full simulation?
+4. Does Reset clear everything: canvas, numbers, interpretation?
+5. Test mentally: if the user changes the dropdown and clicks Run,
+will the new selection be used? If not, fix it.
+6. Are there any division-by-zero or log(0) edge cases? Guard them.
+7. Does the histogram have a reasonable number of bins
+(Sturges’ rule or 20-40 bins)?
+Now output the complete, working index.html and nothing else.
