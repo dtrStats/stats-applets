@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Illustrating the binomial distribution</title>
+<style>
+  :root{
+    --bg:#f7f9fb;
+    --panel:#ffffff;
+    --ink:#1f2a33;
+    --muted:#5f6b73;
+    --line:#d7e0e6;
+    --z1:#3B9AB2;
+    --z2:#78B7C5;
+    --z3:#EBCC2A;
+    --z4:#E1AF00;
+    --z5:#F21A00;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family: Arial, Helvetica, sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+  }
+  .wrap{
+    max-width:1100px;
+    margin:0 auto;
+    padding:16px;
+  }
+  h1{
+    margin:0 0 8px 0;
+    font-size:28px;
+    line-height:1.2;
+  }
+  .subtitle{
+    margin:0 0 14px 0;
+    color:var(--muted);
+    font-size:15px;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns: 340px 1fr;
+    gap:16px;
+    align-items:start;
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px;
+  }
+  .controls h2, .numbers h2{
+    margin:0 0 12px 0;
+    font-size:18px;
+  }
+  .control{
+    margin-bottom:14px;
+  }
+  .label-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+    margin-bottom:6px;
+  }
+  .label-row label{
+    font-weight:600;
+    font-size:14px;
+  }
+  .value{
+    min-width:70px;
+    text-align:right;
+    font-variant-numeric: tabular-nums;
+    color:var(--z1);
+    font-weight:700;
+  }
+  input[type="range"]{
+    width:100%;
+    cursor:pointer;
+  }
+  .btn-row{
+    display:flex;
+    gap:10px;
+    margin-top:8px;
+  }
+  button{
+    border:none;
+    border-radius:10px;
+    padding:10px 14px;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  #runBtn{
+    background:var(--z1);
+    color:#fff;
+  }
+  #resetBtn{
+    background:#e9eef2;
+    color:var(--ink);
+  }
+  .numbers{
+    margin-top:16px;
+  }
+  .numbers p{
+    margin:8px 0;
+    font-size:14px;
+    line-height:1.35;
+  }
+  .mono{
+    font-family: "Courier New", Courier, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  canvas{
+    width:100%;
+    height:auto;
+    display:block;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:12px;
+  }
+  .foot{
+    margin-top:10px;
+    color:var(--muted);
+    font-size:12px;
+  }
+  @media (max-width: 900px){
+    .grid{ grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Illustrating the binomial distribution</h1>
+    <p class="subtitle">Explore how the Binomial(n, p) pmf changes with <span class="mono">n</span> and <span class="mono">p</span>, and how simulation recovers the true pmf as the number of simulations grows.</p>
+
+<div class="grid">
+  <div>
+    <div class="card controls">
+      <h2>Controls</h2>
+
+      <div class="control">
+        <div class="label-row">
+          <label for="nSlider">Number of trials n</label>
+          <div class="value mono" id="nVal">5</div>
+        </div>
+        <input id="nSlider" type="range" min="5" max="200" step="1" value="5" />
+      </div>
+
+      <div class="control">
+        <div class="label-row">
+          <label for="kSlider">Number of successes k</label>
+          <div class="value mono" id="kVal">0</div>
+        </div>
+        <input id="kSlider" type="range" min="0" max="5" step="1" value="0" />
+      </div>
+
+      <div class="control">
+        <div class="label-row">
+          <label for="pSlider">Probability of success p</label>
+          <div class="value mono" id="pVal">0.50</div>
+        </div>
+        <input id="pSlider" type="range" min="0" max="1" step="0.01" value="0.5" />
+      </div>
+
+      <div class="control">
+        <div class="label-row">
+          <label for="simSlider">Number of simulations</label>
+          <div class="value mono" id="simVal">20</div>
+        </div>
+        <input id="simSlider" type="range" min="20" max="5000" step="10" value="50" />
+      </div>
+
+      <div class="btn-row">
+        <button id="runBtn">Run Simulation</button>
+        <button id="resetBtn">Reset</button>
+      </div>
+    </div>
+
+    <div class="card numbers">
+      <h2>Numbers</h2>
+      <p id="paramText" class="mono"></p>
+      <p id="trueCdfText" class="mono"></p>
+      <p id="simCdfText" class="mono"></p>
+      <p id="meanText" class="mono"></p>
+      <p id="sdText" class="mono"></p>
+    </div>
+  </div>
+
+  <div>
+    <canvas id="plotCanvas" width="720" height="760"></canvas>
+    <div class="foot">Top: true Binomial pmf. Bottom: empirical pmf from simulated draws. Bars from 0 through k are highlighted to show P(X &le; k).</div>
+  </div>
+</div>
+
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  const defaults = {
+    n: 5,
+    k: 0,
+    p: 0.5,
+    sims: 100
+  };
+
+  const palette = {
+    base: "#3B9AB2",
+    light: "#78B7C5",
+    hi: "#EBCC2A",
+    hiEdge: "#E1AF00",
+    accent: "#F21A00",
+    axis: "#1f2a33",
+    grid: "#d7e0e6",
+    text: "#1f2a33",
+    muted: "#5f6b73"
+  };
+
+  const nSlider = document.getElementById("nSlider");
+  const kSlider = document.getElementById("kSlider");
+  const pSlider = document.getElementById("pSlider");
+  const simSlider = document.getElementById("simSlider");
+
+  const nVal = document.getElementById("nVal");
+  const kVal = document.getElementById("kVal");
+  const pVal = document.getElementById("pVal");
+  const simVal = document.getElementById("simVal");
+
+  const paramText = document.getElementById("paramText");
+  const trueCdfText = document.getElementById("trueCdfText");
+  const simCdfText = document.getElementById("simCdfText");
+  const meanText = document.getElementById("meanText");
+  const sdText = document.getElementById("sdText");
+
+  const canvas = document.getElementById("plotCanvas");
+  const ctx = canvas.getContext("2d");
+
+  let state = {
+    n: defaults.n,
+    k: defaults.k,
+    p: defaults.p,
+    sims: defaults.sims,
+    pmf: [],
+    simProbs: [],
+    samples: [],
+    trueCdf: 0,
+    simCdf: 0,
+    mean: 0,
+    sd: 0,
+    yMax: 1
+  };
+
+  function clamp(val, lo, hi) {
+    return Math.max(lo, Math.min(hi, val));
+  }
+
+  function formatFixed(x, d) {
+    if (!isFinite(x)) return "NA";
+    return Number(x).toFixed(d);
+  }
+
+  function logChoose(n, k) {
+    if (k < 0 || k > n) return -Infinity;
+    if (k === 0 || k === n) return 0;
+    k = Math.min(k, n - k);
+    let s = 0;
+    for (let i = 1; i <= k; i++) {
+      s += Math.log(n - k + i) - Math.log(i);
+    }
+    return s;
+  }
+
+  function binomPMF(n, p) {
+    const out = new Array(n + 1).fill(0);
+
+    if (p === 0) {
+      out[0] = 1;
+      return out;
+    }
+    if (p === 1) {
+      out[n] = 1;
+      return out;
+    }
+
+    const logp = Math.log(p);
+    const logq = Math.log(1 - p);
+
+    for (let k = 0; k <= n; k++) {
+      const lp = logChoose(n, k) + k * logp + (n - k) * logq;
+      out[k] = Math.exp(lp);
+    }
+
+    // Normalize lightly to protect against tiny accumulated floating-point drift.
+    let sum = 0;
+    for (let i = 0; i < out.length; i++) sum += out[i];
+    if (sum > 0) {
+      for (let i = 0; i < out.length; i++) out[i] /= sum;
+    }
+    return out;
+  }
+
+  function cumulativeUpTo(arr, k) {
+    const kk = clamp(k, 0, arr.length - 1);
+    let s = 0;
+    for (let i = 0; i <= kk; i++) s += arr[i];
+    return s;
+  }
+
+  function sampleBinomial(n, p) {
+    if (p === 0) return 0;
+    if (p === 1) return n;
+    let x = 0;
+    for (let i = 0; i < n; i++) {
+      if (Math.random() < p) x++;
+    }
+    return x;
+  }
+
+  function simulate(n, p, sims) {
+    const counts = new Array(n + 1).fill(0);
+    const samples = new Array(sims);
+    let sum = 0;
+
+    for (let i = 0; i < sims; i++) {
+      const x = sampleBinomial(n, p);
+      samples[i] = x;
+      counts[x]++;
+      sum += x;
+    }
+
+    const mean = sum / sims;
+    let ss = 0;
+    for (let i = 0; i < sims; i++) {
+      const d = samples[i] - mean;
+      ss += d * d;
+    }
+    const sd = sims > 1 ? Math.sqrt(ss / (sims - 1)) : 0;
+
+    const probs = counts.map(c => c / sims);
+
+    return { counts, probs, samples, mean, sd };
+  }
+
+  function updateSliderDisplays() {
+    nVal.textContent = String(state.n);
+    kVal.textContent = String(state.k);
+    pVal.textContent = formatFixed(state.p, 2);
+    simVal.textContent = String(state.sims);
+  }
+
+  function syncStateFromControls() {
+    const n = parseInt(nSlider.value, 10);
+    kSlider.max = String(n);
+    let k = parseInt(kSlider.value, 10);
+    if (k > n) {
+      k = n;
+      kSlider.value = String(k);
+    }
+
+    state.n = n;
+    state.k = k;
+    state.p = Number(pSlider.value);
+    state.sims = parseInt(simSlider.value, 10);
+    updateSliderDisplays();
+  }
+
+  function computeAndRender(rerunSimulation) {
+    syncStateFromControls();
+
+    state.pmf = binomPMF(state.n, state.p);
+    state.trueCdf = cumulativeUpTo(state.pmf, state.k);
+
+    if (rerunSimulation || state.samples.length !== state.sims || state.simProbs.length !== state.n + 1) {
+      const sim = simulate(state.n, state.p, state.sims);
+      state.simProbs = sim.probs;
+      state.samples = sim.samples;
+      state.mean = sim.mean;
+      state.sd = sim.sd;
+      state.simCdf = cumulativeUpTo(state.simProbs, state.k);
+    } else {
+      state.simCdf = cumulativeUpTo(state.simProbs, state.k);
+    }
+
+    let maxP = 0;
+    for (let i = 0; i < state.pmf.length; i++) {
+      if (state.pmf[i] > maxP) maxP = state.pmf[i];
+    }
+    state.yMax = maxP + 0.1;
+    if (state.yMax <= 0) state.yMax = 1;
+
+    updateNumbers();
+    draw();
+  }
+
+  function updateNumbers() {
+    paramText.textContent =
+      "Current parameters: n = " + state.n +
+      ", k = " + state.k +
+      ", p = " + formatFixed(state.p, 2) +
+      ", simulations = " + state.sims;
+
+    trueCdfText.textContent =
+      "True pmf: P(X <= " + state.k + ") = " + formatFixed(state.trueCdf, 6);
+
+    simCdfText.textContent =
+      "Simulated pmf: P(X <= " + state.k + ") = " + formatFixed(state.simCdf, 6);
+
+    meanText.textContent =
+      "x bar = " + formatFixed(state.mean, 4);
+
+    sdText.textContent =
+      "s = " + formatFixed(state.sd, 4);
+  }
+
+  function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  function draw() {
+    clearCanvas();
+
+    const W = canvas.width;
+    const H = canvas.height;
+
+    const topRect = { x: 74, y: 50, w: W - 118, h: 250 };
+    const botRect = { x: 74, y: 410, w: W - 118, h: 250 };
+
+    drawPanelTitle("True Binomial(n, p) PMF", topRect.x, 28);
+    drawPanelTitle("Simulated PMF from Draws", botRect.x, 388);
+
+    drawBarPlot(topRect, state.pmf, state.k, state.yMax, "k", "P(X = k)");
+    drawBarPlot(botRect, state.simProbs, state.k, state.yMax, "k", "P(X = k)");
+  }
+
+  function drawPanelTitle(text, x, y) {
+    ctx.save();
+    ctx.fillStyle = palette.text;
+    ctx.font = "bold 16px Arial";
+    ctx.fillText(text, x, y);
+    ctx.restore();
+  }
+
+  function drawBarPlot(rect, values, highlightK, yMax, xLabel, yLabel) {
+    const n = values.length - 1;
+
+    // plot border area
+    ctx.save();
+
+    // grid lines and y ticks
+    const yTicks = 5;
+    ctx.strokeStyle = palette.grid;
+    ctx.lineWidth = 1;
+    ctx.fillStyle = palette.text;
+    ctx.font = "12px Arial";
+
+    for (let i = 0; i <= yTicks; i++) {
+      const v = yMax * i / yTicks;
+      const y = rect.y + rect.h - (v / yMax) * rect.h;
+      ctx.beginPath();
+      ctx.moveTo(rect.x, y);
+      ctx.lineTo(rect.x + rect.w, y);
+      ctx.stroke();
+
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      ctx.fillText(v.toFixed(2), rect.x - 8, y);
+    }
+
+    // axes
+    ctx.strokeStyle = palette.axis;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(rect.x, rect.y);
+    ctx.lineTo(rect.x, rect.y + rect.h);
+    ctx.lineTo(rect.x + rect.w, rect.y + rect.h);
+    ctx.stroke();
+
+    // bars
+    const slotW = rect.w / (n + 1);
+    const barW = Math.max(2, slotW * 0.78);
+
+    for (let k = 0; k <= n; k++) {
+      const h = (values[k] / yMax) * rect.h;
+      const x = rect.x + k * slotW + (slotW - barW) / 2;
+      const y = rect.y + rect.h - h;
+
+      const isHi = k <= highlightK;
+      ctx.fillStyle = isHi ? palette.hi : palette.base;
+      ctx.strokeStyle = isHi ? palette.hiEdge : palette.light;
+      ctx.lineWidth = 1;
+
+      ctx.beginPath();
+      ctx.rect(x, y, barW, h);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // x ticks: not every tick if n is large
+    const maxXTicks = 12;
+    let xStep = 1;
+    if (n > maxXTicks) xStep = Math.ceil(n / maxXTicks);
+
+    for (let k = 0; k <= n; k += xStep) {
+      const xCenter = rect.x + k * slotW + slotW / 2;
+      ctx.beginPath();
+      ctx.moveTo(xCenter, rect.y + rect.h);
+      ctx.lineTo(xCenter, rect.y + rect.h + 6);
+      ctx.strokeStyle = palette.axis;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = palette.text;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.font = "12px Arial";
+      ctx.fillText(String(k), xCenter, rect.y + rect.h + 8);
+    }
+
+    // Ensure final n tick is shown if not already
+    if (n % xStep !== 0) {
+      const xCenter = rect.x + n * slotW + slotW / 2;
+      ctx.beginPath();
+      ctx.moveTo(xCenter, rect.y + rect.h);
+      ctx.lineTo(xCenter, rect.y + rect.h + 6);
+      ctx.stroke();
+      ctx.fillText(String(n), xCenter, rect.y + rect.h + 8);
+    }
+
+    // axis labels
+    ctx.fillStyle = palette.text;
+    ctx.font = "14px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText(xLabel, rect.x + rect.w / 2, rect.y + rect.h + 34);
+
+    ctx.translate(rect.x - 52, rect.y + rect.h / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText(yLabel, 0, 0);
+
+    ctx.restore();
+  }
+
+  function rerun() {
+    computeAndRender(true);
+  }
+
+  function softUpdate() {
+    computeAndRender(true);
+  }
+
+  nSlider.addEventListener("input", softUpdate);
+  kSlider.addEventListener("input", function () {
+    syncStateFromControls();
+    state.trueCdf = cumulativeUpTo(state.pmf.length ? state.pmf : binomPMF(state.n, state.p), state.k);
+    computeAndRender(false);
+  });
+  pSlider.addEventListener("input", softUpdate);
+  simSlider.addEventListener("input", softUpdate);
+
+  document.getElementById("runBtn").addEventListener("click", rerun);
+
+  document.getElementById("resetBtn").addEventListener("click", function () {
+  nSlider.value = String(defaults.n);
+  kSlider.max = String(defaults.n);
+  kSlider.value = String(defaults.k);
+  pSlider.value = String(defaults.p);
+  simSlider.value = String(defaults.sims);
+
+  syncStateFromControls();
+
+  state.pmf = binomPMF(state.n, state.p);
+  state.trueCdf = cumulativeUpTo(state.pmf, state.k);
+
+  state.simProbs = new Array(state.n + 1).fill(0);
+  state.samples = [];
+  state.simCdf = 0;
+  state.mean = 0;
+  state.sd = 0;
+
+  let maxP = 0;
+  for (let i = 0; i < state.pmf.length; i++) {
+    if (state.pmf[i] > maxP) maxP = state.pmf[i];
+  }
+  state.yMax = maxP + 0.1;
+  if (state.yMax <= 0) state.yMax = 1;
+
+  updateSliderDisplays();
+  updateNumbers();
+  draw();
+});
+
+  // Initial render
+  computeAndRender(true);
+})();
+</script>
+
+</body>
+</html>
