@@ -384,11 +384,11 @@ function draw(n, confLevel) {
     '1 &minus; &alpha;/2 = <strong>' + prob.toFixed(4) + '</strong>';
 
   document.getElementById('interpNorm').innerHTML =
-    '<span style="color:#4ea0dc;font-weight:600">Normal:</span> The shaded area represents the probability that Z is less than ' +
-    '<span class="mono">' + zStar.toFixed(4) + '</span> under a Standard Normal distribution.';
+    '<span style="color:#4ea0dc;font-weight:600">Normal:</span> The shaded area represents the probability that Z is less than the critical value ' +
+    '<span class="mono">z* = ' + zStar.toFixed(4) + '</span> at the ' + confLevel.toFixed(2)*100 +'</span>% confidence level under a Standard Normal distribution.';
   document.getElementById('interpT').innerHTML =
-    '<span style="color:#e8a87c;font-weight:600">t:</span> The shaded area represents the probability that T is less than ' +
-    '<span class="mono-t">' + tStar.toFixed(4) + '</span> under a t distribution with ' +
+    '<span style="color:#e8a87c;font-weight:600">t:</span> The shaded area represents the probability that T is less than the critical value ' +
+    '<span class="mono-t">t*=' + tStar.toFixed(4) + '</span> at the ' + confLevel.toFixed(2)*100 +'</span>% confidence level under a t distribution with ' +
     '<span class="mono-t">' + df + '</span> degree' + (df > 1 ? 's' : '') + ' of freedom.';
 }
 
