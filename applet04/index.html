@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contrasting the Normal and Student's t Distributions</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0f1117;color:#e0e0e0;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px}
+h1{font-size:1.3rem;color:#c8d6e5;margin-bottom:16px;text-align:center;font-weight:600;letter-spacing:.3px}
+.app{max-width:960px;width:100%}
+.controls{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:center;background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;padding:16px 20px;margin-bottom:14px}
+.ctrl-group{display:flex;flex-direction:column;gap:4px;align-items:center}
+.ctrl-group label{font-size:.76rem;color:#8892a4;font-weight:500;letter-spacing:.4px;text-transform:uppercase}
+.ctrl-group .val{font-size:.95rem;color:#7ec8e3;font-weight:700;font-family:'Courier New',monospace}
+input[type=range]{width:180px;accent-color:#7ec8e3;cursor:pointer}
+button{padding:8px 22px;border:none;border-radius:6px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-update{background:linear-gradient(135deg,#4a90d9,#357abd);color:#fff}
+.btn-update:hover{background:linear-gradient(135deg,#5a9fe8,#4a90d9);transform:translateY(-1px)}
+.btn-reset{background:#2a2d3a;color:#8892a4;border:1px solid #3a3d4a}
+.btn-reset:hover{background:#3a3d4a;color:#c8d6e5}
+canvas{display:block;margin:0 auto;background:#13151d;border:1px solid #2a2d3a;border-radius:10px}
+.legend-row{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;margin-top:8px;margin-bottom:4px;font-size:.8rem;color:#8892a4}
+.legend-item{display:flex;align-items:center;gap:6px}
+.legend-swatch{width:26px;height:13px;border-radius:3px;border:1px solid #3a3d4a}
+.panels{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.panel{background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;padding:16px 18px}
+.panel h2{font-size:.82rem;color:#8892a4;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;border-bottom:1px solid #2a2d3a;padding-bottom:6px}
+.panel p{font-size:.87rem;line-height:1.55;color:#c0c8d4;margin-bottom:6px}
+.mono{font-family:'Courier New',monospace;color:#7ec8e3;font-weight:700}
+.mono-t{font-family:'Courier New',monospace;color:#e8a87c;font-weight:700}
+@media(max-width:700px){
+  .panels{grid-template-columns:1fr}
+  input[type=range]{width:140px}
+  canvas{width:100%;height:auto}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<h1>Contrasting the Normal and Student's t Distributions</h1>
+<div class="controls">
+  <div class="ctrl-group">
+    <label>Sample size n</label>
+    <input type="range" id="sliderN" min="2" max="100" step="1" value="2">
+    <span class="val" id="valN">2</span>
+  </div>
+  <div class="ctrl-group">
+    <label>Confidence 1 - alpha</label>
+    <input type="range" id="sliderAlpha" min="0.50" max="1.00" step="0.01" value="0.95">
+    <span class="val" id="valAlpha">0.95</span>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="btn-update" id="btnUpdate">Update Plot</button>
+    <button class="btn-reset" id="btnReset">Reset</button>
+  </div>
+</div>
+<canvas id="cvs" width="920" height="500"></canvas>
+<div class="legend-row">
+  <div class="legend-item"><div class="legend-swatch" style="background:rgba(78,160,220,.35);border-color:#4ea0dc"></div>Normal shaded region</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:repeating-linear-gradient(45deg,rgba(232,168,124,.35),rgba(232,168,124,.35) 2px,transparent 2px,transparent 5px);border-color:#e8a87c"></div>t shaded region (hatched)</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#4ea0dc"></div>Normal PDF</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#e8a87c"></div>t PDF</div>
+</div>
+<div class="panels">
+  <div class="panel">
+    <h2>Numbers Panel</h2>
+    <p id="numZstar"></p>
+    <p id="numTstar"></p>
+    <p id="numParams"></p>
+  </div>
+  <div class="panel">
+    <h2>Interpretation</h2>
+    <p id="interpNorm"></p>
+    <p id="interpT"></p>
+  </div>
+</div>
+</div>
+
+<script>
+// ========== Mathematical Functions ==========
+
+// Lanczos approximation for ln(Gamma(z)), z > 0
+function lnGamma(z) {
+  if (z < 0.5) {
+    return Math.log(Math.PI / Math.sin(Math.PI * z)) - lnGamma(1 - z);
+  }
+  z -= 1;
+  var g = 7;
+  var c = [
+    0.99999999999980993,  676.5203681218851,
+    -1259.1392167224028,  771.32342877765313,
+    -176.61502916214059,  12.507343278686905,
+    -0.13857109526572012, 9.9843695780195716e-6,
+    1.5056327351493116e-7
+  ];
+  var x = c[0];
+  for (var i = 1; i < g + 2; i++) x += c[i] / (z + i);
+  var t = z + g + 0.5;
+  return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+}
+
+// Standard Normal PDF: f(z) = (1/sqrt(2*pi)) * exp(-0.5*z^2)
+function normPDF(x) {
+  return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
+}
+
+// Student's t PDF: f(t;df) = Gamma((df+1)/2) / (sqrt(pi*df)*Gamma(df/2)) * (1+t^2/df)^(-(df+1)/2)
+function tPDF(x, df) {
+  var logCoeff = lnGamma((df + 1) / 2) - lnGamma(df / 2) - 0.5 * Math.log(Math.PI * df);
+  var logBody = -(df + 1) / 2 * Math.log(1 + x * x / df);
+  return Math.exp(logCoeff + logBody);
+}
+
+// Simpson's rule numerical integration
+function simpsonIntegrate(fn, a, b, n) {
+  if (n % 2 !== 0) n++;
+  var h = (b - a) / n;
+  var s = fn(a) + fn(b);
+  for (var i = 1; i < n; i++) {
+    s += fn(a + i * h) * (i % 2 === 0 ? 2 : 4);
+  }
+  return s * h / 3;
+}
+
+// Normal CDF: P(Z <= x) via Simpson's rule from -12 to x with 600 steps
+function normCDF(x) {
+  if (x <= -12) return 0;
+  if (x >= 12) return 1;
+  return simpsonIntegrate(normPDF, -12, x, 600);
+}
+
+// t CDF: P(T <= x) via Simpson's rule from -30 to x with 800 steps
+function tCDF(x, df) {
+  if (x <= -30) return 0;
+  if (x >= 30) return 1;
+  return simpsonIntegrate(function(v) { return tPDF(v, df); }, -30, x, 800);
+}
+
+// Inverse Normal CDF via bisection (80 iterations for high precision)
+function normQuantile(p) {
+  var lo = -8, hi = 8;
+  for (var i = 0; i < 80; i++) {
+    var mid = (lo + hi) / 2;
+    if (normCDF(mid) < p) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+// Inverse t CDF via bisection
+function tQuantile(p, df) {
+  var lo = -50, hi = 50;
+  for (var i = 0; i < 80; i++) {
+    var mid = (lo + hi) / 2;
+    if (tCDF(mid, df) < p) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+// ========== Canvas Drawing ==========
+var cvs = document.getElementById('cvs');
+var ctx = cvs.getContext('2d');
+var dpr = window.devicePixelRatio || 1;
+cvs.width = 920 * dpr;
+cvs.height = 500 * dpr;
+cvs.style.width = '920px';
+cvs.style.height = '500px';
+ctx.scale(dpr, dpr);
+var W = 920, H = 500;
+
+var margin = { top: 52, right: 32, bottom: 58, left: 65 };
+var pw = W - margin.left - margin.right;
+var ph = H - margin.top - margin.bottom;
+
+function draw(n, confLevel) {
+  var alpha = 1 - confLevel;
+  var df = n - 1;
+  var prob = 1 - alpha / 2; // upper tail probability
+
+  // Compute critical values
+  var zStar = normQuantile(prob);
+  var tStar = tQuantile(prob, df);
+
+  // Plot range
+  var xMin = -4, xMax = 4;
+  var nPts = 400;
+  var dx = (xMax - xMin) / nPts;
+
+  // Build data arrays
+  var xs = [], normY = [], tYarr = [];
+  var yMax = 0;
+  for (var i = 0; i <= nPts; i++) {
+    var x = xMin + i * dx;
+    xs.push(x);
+    var ny = normPDF(x);
+    var ty = tPDF(x, df);
+    normY.push(ny);
+    tYarr.push(ty);
+    if (ny > yMax) yMax = ny;
+    if (ty > yMax) yMax = ty;
+  }
+  yMax *= 1.15;
+
+  // Coordinate transforms
+  function sx(v) { return margin.left + (v - xMin) / (xMax - xMin) * pw; }
+  function sy(v) { return margin.top + ph - (v / yMax) * ph; }
+
+  // Clear
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#13151d';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid lines
+  ctx.strokeStyle = '#1e2130';
+  ctx.lineWidth = 0.8;
+  for (var gx = -4; gx <= 4; gx++) {
+    ctx.beginPath(); ctx.moveTo(sx(gx), margin.top); ctx.lineTo(sx(gx), margin.top + ph); ctx.stroke();
+  }
+  var nYTicks = 6;
+  for (var gy = 0; gy <= nYTicks; gy++) {
+    var yv = yMax * gy / nYTicks;
+    ctx.beginPath(); ctx.moveTo(margin.left, sy(yv)); ctx.lineTo(margin.left + pw, sy(yv)); ctx.stroke();
+  }
+
+  // ---- Shading: Normal region from -inf to zStar (solid fill) ----
+  ctx.beginPath();
+  ctx.moveTo(sx(xMin), sy(0));
+  for (var i = 0; i <= nPts; i++) {
+    if (xs[i] <= zStar) {
+      ctx.lineTo(sx(xs[i]), sy(normY[i]));
+    } else {
+      // Interpolate at zStar
+      var frac = (zStar - xs[i - 1]) / dx;
+      var yInterp = normY[i - 1] + frac * (normY[i] - normY[i - 1]);
+      ctx.lineTo(sx(zStar), sy(yInterp));
+      break;
+    }
+  }
+  ctx.lineTo(sx(Math.min(zStar, xMax)), sy(0));
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(78, 160, 220, 0.30)';
+  ctx.fill();
+
+  // ---- Shading: t region from -inf to tStar (diagonal hatching) ----
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(sx(xMin), sy(0));
+  for (var i = 0; i <= nPts; i++) {
+    if (xs[i] <= tStar) {
+      ctx.lineTo(sx(xs[i]), sy(tYarr[i]));
+    } else {
+      var frac = (tStar - xs[i - 1]) / dx;
+      var yInterp = tYarr[i - 1] + frac * (tYarr[i] - tYarr[i - 1]);
+      ctx.lineTo(sx(tStar), sy(yInterp));
+      break;
+    }
+  }
+  ctx.lineTo(sx(Math.min(tStar, xMax)), sy(0));
+  ctx.closePath();
+  ctx.clip();
+
+  // Hatching lines
+  ctx.strokeStyle = 'rgba(232, 168, 124, 0.38)';
+  ctx.lineWidth = 1.5;
+  var step = 7;
+  for (var d = -H * 2; d < W + H * 2; d += step) {
+    ctx.beginPath();
+    ctx.moveTo(d, 0);
+    ctx.lineTo(d + H, H);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // ---- Draw t PDF curve ----
+  ctx.beginPath();
+  ctx.moveTo(sx(xs[0]), sy(tYarr[0]));
+  for (var i = 1; i <= nPts; i++) ctx.lineTo(sx(xs[i]), sy(tYarr[i]));
+  ctx.strokeStyle = '#e8a87c';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // ---- Draw Normal PDF curve ----
+  ctx.beginPath();
+  ctx.moveTo(sx(xs[0]), sy(normY[0]));
+  for (var i = 1; i <= nPts; i++) ctx.lineTo(sx(xs[i]), sy(normY[i]));
+  ctx.strokeStyle = '#4ea0dc';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // ---- Vertical dashed lines at critical values ----
+  ctx.setLineDash([6, 4]);
+  ctx.lineWidth = 1.6;
+
+  // z* line
+  if (zStar >= xMin && zStar <= xMax) {
+    ctx.beginPath();
+    ctx.moveTo(sx(zStar), sy(0));
+    ctx.lineTo(sx(zStar), sy(normPDF(zStar)));
+    ctx.strokeStyle = '#4ea0dc';
+    ctx.stroke();
+  }
+  // t* line
+  if (tStar >= xMin && tStar <= xMax) {
+    ctx.beginPath();
+    ctx.moveTo(sx(tStar), sy(0));
+    ctx.lineTo(sx(tStar), sy(tPDF(tStar, df)));
+    ctx.strokeStyle = '#e8a87c';
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // ---- Labels at critical values ----
+  ctx.font = '11px Courier New, monospace';
+  ctx.textAlign = 'center';
+  if (zStar >= xMin && zStar <= xMax) {
+    ctx.fillStyle = '#4ea0dc';
+    ctx.fillText('z*=' + zStar.toFixed(2), sx(zStar), sy(normPDF(zStar)) - 10);
+  }
+  if (tStar >= xMin && tStar <= xMax) {
+    ctx.fillStyle = '#e8a87c';
+    var tLabelY = sy(tPDF(tStar, df)) - 10;
+    // Avoid overlap
+    if (Math.abs(sx(tStar) - sx(zStar)) < 50 && Math.abs(tStar - zStar) < 0.5) {
+      tLabelY -= 16;
+    }
+    ctx.fillText('t*=' + tStar.toFixed(2), sx(tStar), tLabelY);
+  }
+
+  // ---- Axes ----
+  ctx.strokeStyle = '#4a4d5a';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(margin.left, margin.top + ph); ctx.lineTo(margin.left + pw, margin.top + ph); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(margin.left, margin.top); ctx.lineTo(margin.left, margin.top + ph); ctx.stroke();
+
+  // X-axis ticks and labels
+  ctx.fillStyle = '#8892a4';
+  ctx.font = '12px Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  for (var tx = -4; tx <= 4; tx++) {
+    var px = sx(tx);
+    ctx.beginPath(); ctx.moveTo(px, margin.top + ph); ctx.lineTo(px, margin.top + ph + 6); ctx.strokeStyle = '#4a4d5a'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = '#8892a4';
+    ctx.fillText(tx.toString(), px, margin.top + ph + 22);
+  }
+
+  // Y-axis ticks and labels
+  ctx.textAlign = 'right';
+  for (var gy = 0; gy <= nYTicks; gy++) {
+    var yv = yMax * gy / nYTicks;
+    var py = sy(yv);
+    ctx.beginPath(); ctx.moveTo(margin.left - 6, py); ctx.lineTo(margin.left, py); ctx.strokeStyle = '#4a4d5a'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = '#8892a4';
+    ctx.fillText(yv.toFixed(2), margin.left - 10, py + 4);
+  }
+
+  // Axis labels
+  ctx.fillStyle = '#9aa0ae';
+  ctx.font = '13px Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('x', margin.left + pw / 2, H - 10);
+
+  ctx.save();
+  ctx.translate(17, margin.top + ph / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('f(x)', 0, 0);
+  ctx.restore();
+
+  // Title
+  ctx.fillStyle = '#c8d6e5';
+  ctx.font = 'bold 14px Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Standard Normal vs t(df=' + df + ') Distributions', W / 2, 30);
+
+  // ========== Update Panels ==========
+  document.getElementById('numZstar').innerHTML =
+    'Normal: <span class="mono">z* = ' + zStar.toFixed(4) + '</span>';
+  document.getElementById('numTstar').innerHTML =
+    't: <span class="mono-t">t* = ' + tStar.toFixed(4) + '</span>';
+  document.getElementById('numParams').innerHTML =
+    'n = <strong>' + n + '</strong> &nbsp;&bull;&nbsp; df = <strong>' + df +
+    '</strong> &nbsp;&bull;&nbsp; Confidence level = <strong>' + confLevel.toFixed(2) +
+    '</strong> &nbsp;&bull;&nbsp; &alpha; = <strong>' + alpha.toFixed(2) +
+    '</strong> &nbsp;&bull;&nbsp; 1 &minus; &alpha;/2 = <strong>' + prob.toFixed(4) + '</strong>';
+
+  document.getElementById('interpNorm').innerHTML =
+    '<span style="color:#4ea0dc;font-weight:600">Normal:</span> The shaded area represents the probability that Z is less than ' +
+    '<span class="mono">' + zStar.toFixed(4) + '</span> under a Standard Normal distribution.';
+  document.getElementById('interpT').innerHTML =
+    '<span style="color:#e8a87c;font-weight:600">t:</span> The shaded area represents the probability that T is less than ' +
+    '<span class="mono-t">' + tStar.toFixed(4) + '</span> under a t distribution with ' +
+    '<span class="mono-t">' + df + '</span> degree' + (df > 1 ? 's' : '') + ' of freedom.';
+}
+
+// ========== Controls ==========
+var sliderN = document.getElementById('sliderN');
+var sliderAlpha = document.getElementById('sliderAlpha');
+var valN = document.getElementById('valN');
+var valAlpha = document.getElementById('valAlpha');
+
+sliderN.addEventListener('input', function() { valN.textContent = this.value; });
+sliderAlpha.addEventListener('input', function() { valAlpha.textContent = parseFloat(this.value).toFixed(2); });
+
+document.getElementById('btnUpdate').addEventListener('click', function() {
+  draw(parseInt(sliderN.value), parseFloat(sliderAlpha.value));
+});
+
+document.getElementById('btnReset').addEventListener('click', function() {
+  sliderN.value = 2; valN.textContent = '2';
+  sliderAlpha.value = 0.95; valAlpha.textContent = '0.95';
+  draw(2, 0.95);
+});
+
+// Initial render
+draw(2, 0.95);
+</script>
+</body>
+</html>
