@@ -11,4 +11,4 @@ Open the applets here:
 
 Or use the landing page:
 
-- [Open applet home page](./index.html)
+- [Open applet home page](https://dtrstats.github.io/stats-applets/)
