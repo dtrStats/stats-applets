@@ -377,10 +377,11 @@ function draw(n, confLevel) {
   document.getElementById('numTstar').innerHTML =
     't: <span class="mono-t">t* = ' + tStar.toFixed(4) + '</span>';
   document.getElementById('numParams').innerHTML =
-    'n = <strong>' + n + '</strong> &nbsp;&bull;&nbsp; df = <strong>' + df +
-    '</strong> &nbsp;&bull;&nbsp; Confidence level = <strong>' + confLevel.toFixed(2) +
-    '</strong> &nbsp;&bull;&nbsp; &alpha; = <strong>' + alpha.toFixed(2) +
-    '</strong> &nbsp;&bull;&nbsp; 1 &minus; &alpha;/2 = <strong>' + prob.toFixed(4) + '</strong>';
+    'n = <strong>' + n + '</strong><br>' +
+    'df = <strong>' + df + '</strong><br>' +
+    'Confidence level = <strong>' + confLevel.toFixed(2) + '</strong><br>' +
+    '&alpha; = <strong>' + alpha.toFixed(2) + '</strong><br>' +
+    '1 &minus; &alpha;/2 = <strong>' + prob.toFixed(4) + '</strong>';
 
   document.getElementById('interpNorm').innerHTML =
     '<span style="color:#4ea0dc;font-weight:600">Normal:</span> The shaded area represents the probability that Z is less than ' +
