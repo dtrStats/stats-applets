@@ -1,124 +1,258 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Statistics Applets</title>
-  <style>
-    :root {
-      --bg: #f5f7fb;
-      --panel: #ffffff;
-      --text: #1f2937;
-      --muted: #6b7280;
-      --border: #dbe3ee;
-      --accent: #2563eb;
-      --accent-dark: #1d4ed8;
-      --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STAT 243z — Introductory Statistics</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0f172a;
+    --surface:#1e293b;
+    --surface2:#334155;
+    --accent:#6366f1;
+    --accent2:#818cf8;
+    --accent-glow:rgba(99,102,241,.25);
+    --mint:#34d399;
+    --mint-glow:rgba(52,211,153,.18);
+    --peach:#fb923c;
+    --rose:#f472b6;
+    --text:#f1f5f9;
+    --text-dim:#94a3b8;
+    --radius:16px;
+    --radius-sm:10px;
+  }
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+    background:var(--bg);color:var(--text);line-height:1.6;
+    min-height:100vh;overflow-x:hidden;
+  }
 
-    * {
-      box-sizing: border-box;
-    }
+  /* animated gradient bg */
+  body::before{
+    content:'';position:fixed;inset:0;z-index:-1;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%,rgba(99,102,241,.12),transparent),
+      radial-gradient(ellipse 60% 50% at 80% 80%,rgba(52,211,153,.08),transparent),
+      radial-gradient(ellipse 50% 40% at 50% 50%,rgba(251,146,60,.05),transparent);
+  }
 
-    body {
-      margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background: linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
-      color: var(--text);
-    }
+  .container{max-width:900px;margin:0 auto;padding:24px 20px 40px}
 
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 48px 20px;
-    }
+  /* ---- HEADER ---- */
+  header{text-align:center;padding:48px 0 32px;position:relative}
+  .badge{
+    display:inline-block;background:var(--accent);color:#fff;
+    font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    padding:5px 14px;border-radius:999px;margin-bottom:16px;
+  }
+  h1{
+    font-size:clamp(1.8rem,5vw,2.8rem);font-weight:800;
+    letter-spacing:-.02em;line-height:1.15;
+    background:linear-gradient(135deg,#e0e7ff,#c7d2fe,#a5b4fc,var(--mint));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    background-clip:text;
+  }
+  .subtitle{color:var(--text-dim);font-size:1.05rem;margin-top:8px}
+  .date-line{color:var(--text-dim);font-size:.82rem;margin-top:12px;opacity:.7}
 
-    .hero {
-      text-align: center;
-      margin-bottom: 36px;
-    }
+  /* ---- SECTION TITLES ---- */
+  .section-label{
+    font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--text-dim);margin-bottom:14px;padding-left:4px;
+  }
 
-    .hero h1 {
-      margin: 0 0 10px;
-      font-size: 2.2rem;
-    }
+  /* ---- TODAY CARD ---- */
+  .today-card{
+    margin:36px 0 44px;padding:36px 32px;
+    background:linear-gradient(135deg,var(--accent),#7c3aed);
+    border-radius:var(--radius);position:relative;overflow:hidden;
+    box-shadow:0 8px 40px rgba(99,102,241,.3);
+    text-align:center;
+    transition:transform .25s,box-shadow .25s;
+  }
+  .today-card:hover{transform:translateY(-3px);box-shadow:0 12px 48px rgba(99,102,241,.4)}
+  .today-card::after{
+    content:'';position:absolute;inset:0;
+    background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.12),transparent 60%);
+    pointer-events:none;
+  }
+  .today-tag{
+    display:inline-block;background:rgba(255,255,255,.18);
+    font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    padding:4px 12px;border-radius:999px;margin-bottom:14px;color:#fff;
+  }
+  .today-card h2{font-size:clamp(1.2rem,3.5vw,1.6rem);font-weight:700;color:#fff;margin-bottom:6px}
+  .today-card p{color:rgba(255,255,255,.8);font-size:.95rem;margin-bottom:22px}
+  .today-btn{
+    display:inline-flex;align-items:center;gap:8px;
+    background:#fff;color:var(--accent);
+    font-size:1rem;font-weight:700;
+    padding:14px 36px;border-radius:999px;
+    text-decoration:none;
+    transition:background .2s,transform .15s;
+    box-shadow:0 4px 20px rgba(0,0,0,.15);
+  }
+  .today-btn:hover{background:#e0e7ff;transform:scale(1.04)}
+  .today-btn svg{width:18px;height:18px;flex-shrink:0}
 
-    .hero p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 1rem;
-    }
+  /* ---- APPLET GRID ---- */
+  .applet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:44px}
+  .applet-card{
+    background:var(--surface);border:1px solid rgba(255,255,255,.06);
+    border-radius:var(--radius-sm);padding:22px 24px;
+    text-decoration:none;color:var(--text);
+    display:flex;align-items:flex-start;gap:16px;
+    transition:background .2s,transform .2s,border-color .2s;
+    position:relative;overflow:hidden;
+  }
+  .applet-card:hover{
+    background:var(--surface2);transform:translateY(-2px);
+    border-color:rgba(255,255,255,.12);
+  }
+  .applet-icon{
+    width:42px;height:42px;border-radius:10px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:1.1rem;font-weight:800;color:#fff;
+  }
+  .applet-card:nth-child(1) .applet-icon{background:linear-gradient(135deg,#6366f1,#818cf8)}
+  .applet-card:nth-child(2) .applet-icon{background:linear-gradient(135deg,#34d399,#6ee7b7)}
+  .applet-card:nth-child(3) .applet-icon{background:linear-gradient(135deg,#fb923c,#fdba74)}
+  .applet-card:nth-child(4) .applet-icon{background:linear-gradient(135deg,#f472b6,#f9a8d4)}
+  .applet-info h3{font-size:.95rem;font-weight:600;margin-bottom:3px}
+  .applet-info span{font-size:.78rem;color:var(--text-dim)}
+  .applet-card::after{
+    content:'→';position:absolute;right:18px;top:50%;transform:translateY(-50%);
+    font-size:1.1rem;color:var(--text-dim);opacity:0;transition:opacity .2s,right .2s;
+  }
+  .applet-card:hover::after{opacity:1;right:14px}
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 20px;
-    }
+  /* ---- RESOURCES ---- */
+  .resources{
+    display:flex;flex-wrap:wrap;gap:10px;margin-bottom:44px;
+  }
+  .res-chip{
+    display:inline-flex;align-items:center;gap:6px;
+    background:var(--surface);border:1px solid rgba(255,255,255,.07);
+    padding:10px 18px;border-radius:999px;
+    text-decoration:none;color:var(--text);font-size:.85rem;font-weight:500;
+    transition:background .2s,border-color .2s,transform .15s;
+  }
+  .res-chip:hover{background:var(--surface2);border-color:rgba(255,255,255,.15);transform:translateY(-1px)}
+  .res-chip svg{width:14px;height:14px;color:var(--text-dim);flex-shrink:0}
 
-    .card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 22px;
-      box-shadow: var(--shadow);
-    }
+  /* ---- FOOTER ---- */
+  footer{
+    text-align:center;padding:24px 0 12px;
+    border-top:1px solid rgba(255,255,255,.06);
+    color:var(--text-dim);font-size:.8rem;
+  }
 
-    .card h2 {
-      margin: 0 0 10px;
-      font-size: 1.25rem;
-    }
-
-    .card p {
-      margin: 0 0 18px;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
-    .btn {
-      display: inline-block;
-      text-decoration: none;
-      background: var(--accent);
-      color: #ffffff;
-      padding: 10px 14px;
-      border-radius: 10px;
-      font-weight: 700;
-      transition: background 0.2s ease;
-    }
-
-    .btn:hover,
-    .btn:focus {
-      background: var(--accent-dark);
-    }
-
-    .footer {
-      text-align: center;
-      margin-top: 28px;
-      color: var(--muted);
-      font-size: 0.92rem;
-    }
-  </style>
+  /* mobile tweaks */
+  @media(max-width:500px){
+    .container{padding:16px 14px 32px}
+    header{padding:32px 0 20px}
+    .today-card{padding:28px 20px}
+    .applet-grid{grid-template-columns:1fr}
+    .resources{justify-content:center}
+  }
+</style>
 </head>
 <body>
-  <main class="container">
-    <section class="hero">
-      <h1>Statistics Applets</h1>
-      <p>Select an applet below to open it.</p>
-    </section>
+<div class="container">
 
-    <section class="grid" aria-label="Applet links">
-      <article class="card">
-        <h2>CLT in Action</h2>
-        <p>See how the sampling distribution of the mean is determined.</p>
-        <a class="btn" href="applet01/index.html">Open Applet 01</a>
-      </article>
+  <!-- HEADER -->
+  <header>
+    <div class="badge">Fall 2026</div>
+    <h1>STAT 243z<br>Introductory Statistics</h1>
+    <p class="subtitle">Interactive applets &amp; resources — all in one place.</p>
+    <p class="date-line" id="dateLine"></p>
+  </header>
 
-      <article class="card">
-        <h2>Confidence Intervals</h2>
-        <p>Learn how to better interpret confidence intervals and their confidence level.</p>
-        <a class="btn" href="applet02/index.html">Open Applet 02</a>
-      </article>
-    </section>
+  <!-- TODAY -->
+  <div class="section-label">📌 Today</div>
+  <a href="./applet04/" class="today-card" style="display:block;text-decoration:none">
+    <div class="today-tag">Now Open</div>
+    <h2>Z vs. t: Inference when the Variance Is Unknown</h2>
+    <p>When should you use Z vs. t? Explore the difference.</p>
+    <span class="today-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Launch Applet
+    </span>
+  </a>
 
-  </main>
+  <!-- APPLET LIBRARY -->
+  <div class="section-label">📂 Applet Library</div>
+  <div class="applet-grid">
+    <a href="./applet01/" class="applet-card">
+      <div class="applet-icon">01</div>
+      <div class="applet-info">
+        <h3>Sampling Distribution of the Mean</h3>
+        <span>Explore how sample means behave</span>
+      </div>
+    </a>
+    <a href="./applet02/" class="applet-card">
+      <div class="applet-icon">02</div>
+      <div class="applet-info">
+        <h3>Interpreting Confidence Intervals</h3>
+        <span>Visualize interval coverage</span>
+      </div>
+    </a>
+    <a href="./applet03/" class="applet-card">
+      <div class="applet-icon">03</div>
+      <div class="applet-info">
+        <h3>Exploring the Binomial Distribution</h3>
+        <span>Probability &amp; combinatorics</span>
+      </div>
+    </a>
+    <a href="./applet04/" class="applet-card">
+      <div class="applet-icon">04</div>
+      <div class="applet-info">
+        <h3>Standard Normal vs. <em>t</em> Distributions</h3>
+        <span>Compare tail behavior &amp; df</span>
+      </div>
+    </a>
+  </div>
+
+  <!-- RESOURCES -->
+  <div class="section-label">🔗 Resources</div>
+  <div class="resources">
+    <a href="https://www.lock5stat.com/StatKey/" target="_blank" rel="noopener" class="res-chip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      StatKey
+    </a>
+    <a href="https://seeing-theory.brown.edu/" target="_blank" rel="noopener" class="res-chip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      Seeing Theory
+    </a>
+    <a href="https://www.rossmanchance.com/applets/" target="_blank" rel="noopener" class="res-chip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      Rossman / Chance
+    </a>
+    <a href="https://www.desmos.com/calculator" target="_blank" rel="noopener" class="res-chip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      Desmos
+    </a>
+    <a href="https://www.geogebra.org/graphing" target="_blank" rel="noopener" class="res-chip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      GeoGebra
+    </a>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    If a link does not load, refresh or try another browser.
+  </footer>
+
+</div>
+
+<script>
+  (function(){
+    var d=new Date();
+    var opts={weekday:'long',year:'numeric',month:'long',day:'numeric'};
+    document.getElementById('dateLine').textContent=d.toLocaleDateString('en-US',opts);
+  })();
+</script>
 </body>
 </html>
