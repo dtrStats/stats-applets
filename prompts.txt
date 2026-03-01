@@ -1,3 +1,5 @@
+# MASTER PROMPT 01
+
 You are an expert single-file HTML applet designer with deep knowledge
 of mathematics, statistics, and front-end engineering. You write correct,
 robust code and never ship broken UI logic or wrong formulas.
@@ -63,3 +65,94 @@ will the new selection be used? If not, fix it.
 7. Does the histogram have a reasonable number of bins
 (Sturges’ rule or 20-40 bins)?
 Now output the complete, working index.html and nothing else.
+
+
+
+### EXPLORING THE BINOMIAL DISTRIBUTION
+You are an expert single-file HTML statistics applet designer.
+You write mathematically correct, bug-free code.
+Return ONLY one file: index.html
+HARD RULES: single file, all HTML/CSS/JS inline, zero external
+dependencies (no CDN, no imports, no fetch), must run offline.
+TITLE: Illustrating the binomial distribution
+GOAL: Show the behavior of the binomial distribution as p and n change. Illustrate how through simulation one can increasingly more accurately recover the true probability mass function as the number of simulations increases.
+MATH REQUIREMENTS (get these right -- double-check each one)
+- Population generators:
+Binomial: with n and p specified by the user.
+For plotting the Binomial PMF use: P(X=k) = C(n,k) * p^k * (1-p)^(n-k)
+Use log-space computation to avoid overflow:
+log(P) = logC(n,k) + k*log(p) + (n-k)*log(1-p), then exp().
+Compute logC using sum of logs, not factorial directly.
+P(X<=k) = sum of P(X=j) for j=0..k.
+- For each trial run: draw 1 value from the selected population. Repeat for the chosen number of trials.
+- Display: Have a two panel stacked figure. Top panel shows a bar plot with the true probability mass function of the Binomial(n,p) distribution, bottom panel shows a bar plot of the simulated values sampled.
+CONTROLS (each shows its current value on screen)
+- Slider: number of trials n, range 5 to 200, step 1, default 5
+- Slider: number of successes k, range 0 to n, step 1, default 0. Clamp k to max n.
+- Slider: probability of success p, range 0.0 to 1.0, step 0.01, default 0.5
+- Slider: number of simulations, range 100 to 5000, step 100,
+default 100
+- Buttons: Run Simulation, Reset
+CANVAS PLOT REQUIREMENTS
+True pmf: vertical bars for each k from 0 to n.
+Highlight bars from 0 to k in a distinct color for P(X<=k).
+X-axis label: "k". Y-axis label: "P(X = k)". Tick marks.
+Simulated pmf: vertical bars for each k from 0 to n.
+Highlight bars from 0 to k in a distinct color for P(X<=k).
+X-axis label: "k". Y-axis label: "P(X = k)". Tick marks.
+Keep the limits of the y-axis fixed 0 and max{P(X=k)}+0.1 across simulations
+Choose judiciously some colors from the wessanderson::Zissou1 palette
+NUMBERS PANEL (update after each Update Plot)
+- True pmf: "P(X <= [k]) = [value]" (6 decimal places)
+- Simulated pmf: "P(X <= [k]) = [value]" (6 decimal places)
+- Simulated mean: "x bar = [value]" (4 decimal places)
+- Simulated SD: "s = [value]" (4 decimal places)
+- Current parameter values displayed clearly.
+EDGE CASES TO HANDLE
+- p=0: all probability at k=0. p=1: all probability at k=n.
+- k > n: clamp k to n automatically.
+Output the complete index.html and nothing else.
+
+
+
+### CONTRASTING THE NORMAL AND STUDENT'S T DISTRIBUTIONS
+You are an expert single-file HTML statistics applet designer.
+You write mathematically correct, bug-free code.
+Return ONLY one file: index.html
+HARD RULES: single file, all HTML/CSS/JS inline, zero external
+dependencies (no CDN, no imports, no fetch), must run offline.
+TITLE: Contrasting the Normal and Student's t Distributions
+GOAL: Show the similarities and difference between the standard 
+normal and the t distribution with n-1 degrees of freedom as the sample 
+size grows for different levels of confidence 1-alpha.
+MATH REQUIREMENTS (double-check every formula)
+- Normal PDF: f(z) = (1/(sqrt(2*pi))) * exp(-0.5*(z^2)
+- t PDF: f(t) = (Gamma(df+1)/(sqrt(pi*df)*Gamma(df/2))) * (1+t^2/df)^(-(df+1)/2),
+Where Gamma(a,b) is the Gamma function evaluated at a and b, and df = n-1.
+Compute both curves at 300+ points for a smooth curve.
+Also for P(Z<=z) and P(T<=t): use numerical integration (Simpson’s rule or
+trapezoidal rule with 500+ steps). Do NOT use approximations.
+CONTROLS (each shows its current value on screen)
+- Sliders: n (2 to 100, step 1, default 2), 1-alpha (0.5 to 1, step 0.01, default 0.95)
+- Buttons: Update Plot, Reset
+CANVAS PLOT REQUIREMENTS
+- Overlay the smooth curves for Normal and t PDFs
+- Normal PDF: calculate z.star such that P(Z<= z.star)=1-(alpha/2), where Z is N(0,1), 
+and shade region from -Inf to z.star.
+- t PDF: calculate t-star such that P(T<= t.star)=1-(alpha/2), where T is t with df = n-1, 
+and shade region from -Inf to t.star.
+- For shading choose judiciously (either colors and/or patterns) that make it easy to see the 
+difference between the two distributions.
+X-axis range: mu - 4*sigma to mu + 4*sigma.
+X-axis label: "x". Y-axis label: "f(x)". 5+ tick marks each.
+- Title: "Standard Normal vs t(df=[n-1]) Distributions
+NUMBERS PANEL (update after each Update Plot)
+- Normal: "z.star = [value]" (4 decimal places)
+- t: "t.star = [value]" (4 decimal places)
+- Current parameter values (including Confidence level = [1-alpha]) displayed clearly.
+INTERPRETATION PANEL
+- Normal: "The shaded area represents the probability that Z is less than [z.star] under 
+a Standard Normal distribution."
+- t: "The shaded area represents the probability that T is less than [t.star] under 
+a t with [n-1] degrees of freedom."
+Output the complete index.html and nothing else.
