@@ -222,14 +222,13 @@ function draw(n, confLevel) {
     ctx.beginPath(); ctx.moveTo(margin.left, sy(yv)); ctx.lineTo(margin.left + pw, sy(yv)); ctx.stroke();
   }
 
-  // ---- Shading: Normal region from -inf to zStar (solid fill) ----
+  // ---- Shading: Normal region from -zStar to zStar (solid fill) ----
   ctx.beginPath();
-  ctx.moveTo(sx(xMin), sy(0));
+  ctx.moveTo(sx(Math.max(-zStar, xMin)), sy(0));
   for (var i = 0; i <= nPts; i++) {
-    if (xs[i] <= zStar) {
+    if (xs[i] >= -zStar && xs[i] <= zStar) {
       ctx.lineTo(sx(xs[i]), sy(normY[i]));
-    } else {
-      // Interpolate at zStar
+    } else if (xs[i] > zStar) {
       var frac = (zStar - xs[i - 1]) / dx;
       var yInterp = normY[i - 1] + frac * (normY[i] - normY[i - 1]);
       ctx.lineTo(sx(zStar), sy(yInterp));
@@ -241,14 +240,14 @@ function draw(n, confLevel) {
   ctx.fillStyle = 'rgba(78, 160, 220, 0.30)';
   ctx.fill();
 
-  // ---- Shading: t region from -inf to tStar (diagonal hatching) ----
+  // ---- Shading: t region from -tStar to tStar (diagonal hatching) ----
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(sx(xMin), sy(0));
+  ctx.moveTo(sx(Math.max(-tStar, xMin)), sy(0));
   for (var i = 0; i <= nPts; i++) {
-    if (xs[i] <= tStar) {
+    if (xs[i] >= -tStar && xs[i] <= tStar) {
       ctx.lineTo(sx(xs[i]), sy(tYarr[i]));
-    } else {
+    } else if (xs[i] > tStar) {
       var frac = (tStar - xs[i - 1]) / dx;
       var yInterp = tYarr[i - 1] + frac * (tYarr[i] - tYarr[i - 1]);
       ctx.lineTo(sx(tStar), sy(yInterp));
@@ -291,20 +290,28 @@ function draw(n, confLevel) {
   ctx.setLineDash([6, 4]);
   ctx.lineWidth = 1.6;
 
-  // z* line
+  // z* lines
   if (zStar >= xMin && zStar <= xMax) {
     ctx.beginPath();
     ctx.moveTo(sx(zStar), sy(0));
     ctx.lineTo(sx(zStar), sy(normPDF(zStar)));
     ctx.strokeStyle = '#4ea0dc';
     ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(sx(-zStar), sy(0));
+    ctx.lineTo(sx(-zStar), sy(normPDF(-zStar)));
+    ctx.stroke();
   }
-  // t* line
+  // t* lines
   if (tStar >= xMin && tStar <= xMax) {
     ctx.beginPath();
     ctx.moveTo(sx(tStar), sy(0));
     ctx.lineTo(sx(tStar), sy(tPDF(tStar, df)));
     ctx.strokeStyle = '#e8a87c';
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(sx(-tStar), sy(0));
+    ctx.lineTo(sx(-tStar), sy(tPDF(-tStar, df)));
     ctx.stroke();
   }
   ctx.setLineDash([]);
@@ -315,6 +322,7 @@ function draw(n, confLevel) {
   if (zStar >= xMin && zStar <= xMax) {
     ctx.fillStyle = '#4ea0dc';
     ctx.fillText('z*=' + zStar.toFixed(2), sx(zStar), sy(normPDF(zStar)) - 10);
+    ctx.fillText('-z*=' + (-zStar).toFixed(2), sx(-zStar), sy(normPDF(-zStar)) - 10);
   }
   if (tStar >= xMin && tStar <= xMax) {
     ctx.fillStyle = '#e8a87c';
@@ -324,6 +332,11 @@ function draw(n, confLevel) {
       tLabelY -= 16;
     }
     ctx.fillText('t*=' + tStar.toFixed(2), sx(tStar), tLabelY);
+    var tLabelYNeg = sy(tPDF(-tStar, df)) - 10;
+    if (Math.abs(sx(-tStar) - sx(-zStar)) < 50 && Math.abs(tStar - zStar) < 0.5) {
+      tLabelYNeg -= 16;
+    }
+    ctx.fillText('-t*=' + (-tStar).toFixed(2), sx(-tStar), tLabelYNeg);
   }
 
   // ---- Axes ----
@@ -384,11 +397,11 @@ function draw(n, confLevel) {
     '1 &minus; &alpha;/2 = <strong>' + prob.toFixed(4) + '</strong>';
 
   document.getElementById('interpNorm').innerHTML =
-    '<span style="color:#4ea0dc;font-weight:600">Normal:</span> The shaded area represents the probability that Z is less than the critical value ' +
-    '<span class="mono">z* = ' + zStar.toFixed(4) + '</span> at the ' + confLevel.toFixed(2)*100 +'</span>% confidence level under a Standard Normal distribution.';
+    '<span style="color:#4ea0dc;font-weight:600">Normal:</span> The shaded area represents the probability that Z is between ' +
+    '<span class="mono">&minus;z* = ' + (-zStar).toFixed(4) + '</span> and <span class="mono">z* = ' + zStar.toFixed(4) + '</span> under a Standard Normal distribution.';
   document.getElementById('interpT').innerHTML =
-    '<span style="color:#e8a87c;font-weight:600">t:</span> The shaded area represents the probability that T is less than the critical value ' +
-    '<span class="mono-t">t*=' + tStar.toFixed(4) + '</span> at the ' + confLevel.toFixed(2)*100 +'</span>% confidence level under a t distribution with ' +
+    '<span style="color:#e8a87c;font-weight:600">t:</span> The shaded area represents the probability that T is between ' +
+    '<span class="mono-t">&minus;t* = ' + (-tStar).toFixed(4) + '</span> and <span class="mono-t">t* = ' + tStar.toFixed(4) + '</span> under a t distribution with ' +
     '<span class="mono-t">' + df + '</span> degree' + (df > 1 ? 's' : '') + ' of freedom.';
 }
 
